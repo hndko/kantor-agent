@@ -418,7 +418,18 @@ export class AntigravityScanner {
       if (s.lastKind !== 'final') {
         taskList[taskList.length - 1].status = 'in_progress';
       }
-      s.todos = taskList.slice(-25);
+      // Prioritaskan tugas belum selesai (in_progress, pending) di posisi paling atas,
+      // disusul tugas selesai (completed) secara kronologis terbalik (terbaru dulu).
+      const statusWeight = { in_progress: 0, pending: 1, completed: 2 };
+      const sorted = [...taskList].sort((a, b) => {
+        const wa = statusWeight[a.status] ?? 1;
+        const wb = statusWeight[b.status] ?? 1;
+        if (wa !== wb) return wa - wb;
+        const ta = a.at ? new Date(a.at).getTime() : 0;
+        const tb = b.at ? new Date(b.at).getTime() : 0;
+        return tb - ta;
+      });
+      s.todos = sorted.slice(0, 30);
       s.todosAt = s.updated || s.started || new Date().toISOString();
       s.todoSource = 'Antigravity Session & User Requests';
     }

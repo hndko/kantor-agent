@@ -86,6 +86,19 @@ const TODO_STATUS = {
   completed: { label: 'Selesai', css: '#2f9a6d', note: '#dff1e3' },
 };
 
+function sortTodos(items) {
+  if (!Array.isArray(items)) return [];
+  const statusWeight = { in_progress: 0, pending: 1, completed: 2 };
+  return [...items].sort((a, b) => {
+    const wa = statusWeight[a.status] ?? 1;
+    const wb = statusWeight[b.status] ?? 1;
+    if (wa !== wb) return wa - wb;
+    const ta = a.at ? new Date(a.at).getTime() : 0;
+    const tb = b.at ? new Date(b.at).getTime() : 0;
+    return tb - ta;
+  });
+}
+
 // ---------------------------------------------------------------- renderer
 const host = $('scene');
 let renderer;
@@ -1877,7 +1890,8 @@ function drawTodoScreen(scr, todos) {
   ctx.fillText('Daftar tugas sesi utama', 28, 41);
   let y = 110;
   ctx.font = `500 26px ${SANS}`;
-  const items = todos?.items || [];
+  const rawItems = todos?.items || [];
+  const items = sortTodos(rawItems);
   if (!items.length) {
     ctx.fillStyle = '#9a938a';
     ctx.fillText('Belum ada daftar tugas aktif.', 28, y);
@@ -1886,7 +1900,7 @@ function drawTodoScreen(scr, todos) {
     const st = TODO_STATUS[it.status] || TODO_STATUS.pending;
     ctx.fillStyle = st.css;
     ctx.fillText(it.status === 'completed' ? '✓' : it.status === 'in_progress' ? '▶' : '○', 28, y);
-    ctx.fillStyle = it.status === 'completed' ? '#9a938a' : '#2b2a28';
+    ctx.fillStyle = it.status === 'in_progress' ? '#1b5e20' : (it.status === 'completed' ? '#9a938a' : '#2b2a28');
     ctx.fillText(fit(ctx, it.text, W - 90), 66, y);
     y += 46;
   }
@@ -1948,7 +1962,7 @@ function drawTodoBoard(k) {
   ctx.font = `34px ${HAND}`;
   ctx.fillStyle = '#6f6a62';
   ctx.fillText(fit(ctx, todos ? `sumber: ${todos.source || 'Antigravity Session'} · ${items.length} tugas · ${hhmm(todos.at)}` : 'sumber: sesi utama Antigravity', W - 560), 520, 76);
-  const cols = ['pending', 'in_progress', 'completed'];
+  const cols = ['in_progress', 'pending', 'completed'];
   const colW = (W - 80) / 3;
   cols.forEach((st, i) => {
     const x = 40 + i * colW;
@@ -1961,6 +1975,7 @@ function drawTodoBoard(k) {
       ctx.stroke();
     }
     const mine = items.filter((it) => it.status === st);
+    mine.sort((a, b) => (b.at ? new Date(b.at).getTime() : 0) - (a.at ? new Date(a.at).getTime() : 0));
     ctx.fillStyle = '#2b2a28';
     ctx.font = `50px ${HAND}`;
     ctx.fillText(`${TODO_STATUS[st].label} (${mine.length})`, x + 10, 158);
@@ -2284,9 +2299,11 @@ function renderUi(d, fresh) {
   // daftar tugas Ketua
   const todos = d.ketua.todos;
   $('tugasWho').textContent = KETUA_NAME;
-  $('nTodo').textContent = fmtNum.format(todos ? todos.items.filter((it) => it.status !== 'completed').length : 0);
+  const rawTodos = todos?.items || [];
+  const sortedTodos = sortTodos(rawTodos);
+  $('nTodo').textContent = fmtNum.format(sortedTodos.filter((it) => it.status !== 'completed').length);
   $('paneTodo').innerHTML = `<div class="src">Sumber: <b>${todos && todos.source ? esc(todos.source) : 'Antigravity Session'}</b> di sesi utama${todos ? ` · diperbarui ${esc(ago(todos.at))}` : ''}</div>`
-    + (todos && todos.items.length ? todos.items.map((it) => `<div class="todo s-${esc(it.status)}"><i>${it.status === 'completed' ? '✓' : it.status === 'in_progress' ? '▶' : '○'}</i><span>${esc(it.text)}</span></div>`).join('') : '<div class="empty">Belum ada daftar tugas di sesi utama.</div>');
+    + (sortedTodos.length ? sortedTodos.map((it) => `<div class="todo s-${esc(it.status)}"><i>${it.status === 'completed' ? '✓' : it.status === 'in_progress' ? '▶' : '○'}</i><span>${esc(it.text)}</span></div>`).join('') : '<div class="empty">Belum ada daftar tugas di sesi utama.</div>');
 
   // kartu
   const k = d.ketua;
