@@ -1,48 +1,65 @@
-# Kantor Agent — lihat Claude & subagent-nya bekerja di kantor 3D
+# Kantor Mari Partner (Kantor Agent) — Lihat Google Antigravity & Claude Code Bekerja di Kantor 3D
 
-> **English summary.** Kantor Agent is a zero-config [Claude Code](https://code.claude.com) plugin (one skill) that
-> shows what Claude is doing in your project as a small 3D office (three.js). The main session is the team lead
-> **Joko**, who works at his own desk. Four teammates — **Budi, Sari, Agus, Rina** — lounge in the break area (TV,
-> coffee, games, guitar, small talk) and walk to a desk whenever Claude spawns a subagent of **any** type; when all
-> four are busy, **freelancers** enter through the office door, work at spare desks, and leave when done. Everything
-> is driven by the real, local Claude Code transcripts (`~/.claude/projects`), read-only and redacted — no fake
-> activity. One command (`/kantor-agent:kantor-agent`) starts a local server (Node ≥ 18, or PHP ≥ 8.1) at
-> `http://127.0.0.1:8788/kerja` without writing any file into your project; an optional cloudflared tunnel gives a
-> temporary public URL. UI and docs are in Bahasa Indonesia. MIT licensed.
+> **English summary.** Kantor Mari Partner (Kantor Agent) is a zero-config 3D office visualizer (three.js) supporting both **Google Antigravity** and **Claude Code**.
+> The main session is the team lead **Joko**, working at his own desk. The core team — **Budi, Sari, Agus, Rina** — and the studio specialists — **Yoga, Dewi, Rudi, Maya** —
+> lounge in the break area and walk to their desks whenever subagents are dispatched. Features an expanded **Lab & Testing Wing** with 4 Standby PCs, a 42U server rack,
+> an AOI inspection camera rig, and a live architecture whiteboard. Fully supports Windows (PowerShell & Batch), macOS, and Linux without external database setup. MIT licensed.
 
 ![Kantor Agent — tim sedang bekerja](docs/kantor-bekerja.webp)
 
-**Kantor Agent** memperlihatkan apa yang sedang dikerjakan Claude Code di project-mu sebagai kantor kecil 3D.
-Tidak ada peran atau tim yang perlu diatur: sesi utama menjadi **Ketua**, setiap subagent dikerjakan oleh anggota
-tim yang sedang santai, dan bila tim penuh datanglah **freelancer**. Semua gerakan berasal dari transkrip Claude Code
-yang nyata — tanpa data karangan, tanpa login, tanpa konfigurasi.
+**Kantor Mari Partner** memperlihatkan apa yang sedang dikerjakan **Google Antigravity** maupun **Claude Code** secara real-time dalam bentuk simulasi visual kantor 3D yang interaktif dan estetik.
+Tanpa data karangan, tanpa login tambahan, dan tanpa konfigurasi rumit — seluruh aktivitas digerakkan langsung oleh transkrip nyata sesi utama dan subagent lokal Anda.
 
 ## Daftar isi
-- [Fitur](#fitur) · [Kebutuhan](#kebutuhan) · [Mulai cepat (plugin)](#mulai-cepat-plugin) · [Pasang manual](#pasang-manual)
-- [Cara kerja](#cara-kerja) · [Tim & freelancer](#tim--freelancer) · [Pengaturan opsional](#pengaturan-opsional)
-- [Mode menjalankan](#mode-menjalankan) · [URL publik (tunnel)](#url-publik-tunnel) · [Privasi](#privasi)
-- [Masalah umum / FAQ](#masalah-umum--faq) · [Memperbarui](#memperbarui) · [Mencopot](#mencopot) · [Lisensi](#lisensi)
+- [Fitur Utama](#fitur-utama) · [Denah 13 PC & 2 Ruangan](#denah-13-pc--2-ruangan) · [Kebutuhan](#kebutuhan)
+- [Mulai Cepat di Windows (Google Antigravity)](#mulai-cepat-di-windows-google-antigravity) · [Mulai Cepat di Claude Code](#mulai-cepat-di-claude-code)
+- [Cara Kerja Antigravity & Claude](#cara-kerja-antigravity--claude) · [Pelacakan Tugas Joko](#pelacakan-tugas-joko)
+- [Tim, Studio & Lab](#tim-studio--lab) · [URL Publik (Tunnel)](#url-publik-tunnel) · [Lisensi](#lisensi)
 
-## Fitur
-- **Nol konfigurasi, satu perintah.** `/kantor-agent:kantor-agent` menyalakan server lokal dan mencetak URL-nya.
-  Tidak ada file yang ditulis ke folder project (cache & log di `~/.cache/kantor-agent/`).
-- **Ketua "Joko"** = sesi utama Claude. Bekerja di mejanya dengan pose sesuai aksi terakhir (mengetik, membaca,
-  terminal, berpikir), santai saat sesi diam. Beberapa sesi aktif → yang terbaru ditampilkan + catatan "+N sesi lain".
-- **Tim 4 orang** (Budi, Sari, Agus, Rina) nonton TV, main PS, ngopi, minum, main gitar, peregangan di jendela,
-  duduk di meja rapat, baca di rak buku — sambil ngobrol receh. Saat Claude memanggil subagent, satu anggota berjalan
-  ke mejanya ("Siap, saya kerjakan!"), bekerja sesuai aksi subagent itu, lalu kembali santai ("Beres!").
-- **Freelancer** masuk lewat pintu bila keempat anggota sibuk, duduk di meja cadangan, lalu pulang lewat pintu.
-  Tidak ada batas jumlah: 4 meja cadangan, sisanya kartu "+N" — tidak ada yang disembunyikan diam-diam.
-- **Panel sederhana:** aktivitas langsung ("Joko meminta Budi: …"), riwayat subagent, daftar tugas `TodoWrite` sesi
-  utama (juga di papan tulis), kartu Santai / Bekerja / Selesai, statistik *subagent hari ini* & *aktif sekarang*.
-- **Node ≥ 18 atau PHP ≥ 8.1**, tanpa dependensi npm/composer; keluaran JSON identik (dijaga `bin/parity.mjs`).
-- Ramah ponsel (tanpa scroll horizontal di 390 px), panel bisa diperkecil, menghormati `prefers-reduced-motion`.
+## Fitur Utama
+- **Mendukung Google Antigravity & Claude Code**: Otomatis mendeteksi transkrip dari `~/.gemini/antigravity/brain/` maupun `~/.claude/projects/`, lengkap dengan deteksi akun Google yang sedang aktif login.
+- **2 Ruangan Terhubung (Main Office & Sayap Lab Testing)**: Ruangan kerja utama terhubung dengan partisi kaca dan plakat akrilik neon ke ruang lab riset canggih.
+- **13 Komputer PC Interaktif**:
+  - **Meja A0**: Joko (Ketua / Sesi Utama).
+  - **Baris A (Tim Inti)**: Budi (System Architect), Sari (Core Dev), Agus (Memory Auditor), Rina (QA Lead).
+  - **Baris B (Studio Spesialis)**: Yoga (Database Architect), Dewi (API Integrator), Rudi (Mobile Specialist), Maya (Cybersec Officer).
+  - **Baris C (Lab Standby PCs)**: 4 PC Standby telemetri di ruang lab yang siap digunakan subagent baru kapan pun dibutuhkan.
+- **Fasilitas Laboratorium Canggih**: Server rack industrial 42U dengan lampu LED berkedip, workbench kamera inspeksi AOI telecentric & osiloskop digital, serta architectural glass whiteboard.
+- **Pelacakan Tugas Nyata ("Tugas Joko")**: Mengekstrak daftar instruksi pengguna (`USER_REQUEST`) dan rencana tugas secara otomatis dengan status *Selesai* (`✓`), *Sedang Dikerjakan* (`▶`), dan *Rencana* (`○`).
+- **168+ Percakapan Interaktif (Anti-Repeat Deck Shuffle)**: Dialog obrolan kocak seputar kuliner, koding, debugging, dan proyek tim menggunakan algoritma Fisher-Yates sehingga percakapan tidak berulang.
+- **Skrip Kontrol Lengkap di Windows**: Disediakan `kantor.ps1`, `start-kantor.bat`, dan `stop-kantor.bat` untuk menjalankan dan menghentikan visualizer dengan satu klik.
+- **Performa Ringan & Nol Ketergantungan**: Berjalan lancar di Node.js ≥ 18 tanpa memerlukan `npm install`, mendukung rotasi kamera bebas (OrbitControls), dan ramah tampilan ponsel.
 
-| Semua santai | Tim penuh + freelancer | Ponsel |
-|---|---|---|
-| ![Mode santai](docs/kantor-santai.webp) | ![Freelancer](docs/freelancer-penuh.webp) | ![Ponsel](docs/ponsel.webp) |
+## Denah 13 PC & 2 Ruangan
 
-> Semua tangkapan layar berasal dari project demo dengan transkrip **sintetis**.
+```text
+[ RUANGAN UTAMA (MAIN OFFICE) ]                       ║ [ SAYAP LAB & TESTING (MARI PARTNER LAB) ]
+                                                      ║
+ Meja A0 (Joko - Ketua / Sesi Utama)                  ║
+ Baris A (Tim Inti):                                  ║ Baris C (Lab Standby):
+   A1: Budi  (System Architect)                       ║   C0: Lab PC 1 (Standby Telemetry)
+   A2: Sari  (Core Developer)                         ║   C1: Lab PC 2 (Standby Telemetry)
+   A3: Agus  (Memory Auditor)     [ PINTU KACA ]      ║   C2: Lab PC 3 (Standby Telemetry)
+   A4: Rina  (QA Lead)            [ MARI PARTNER LAB] ║   C3: Lab PC 4 (Standby Telemetry)
+                                  ═══════════════════ ║
+ Baris B (Studio Spesialis):                          ║ Fasilitas Lab:
+   B0: Yoga  (Database Architect)                     ║   • 42U Server Rack (LED Blinking)
+   B1: Dewi  (API Integrator)                         ║   • AOI Camera Rig & Oscilloscope
+   B2: Rudi  (Mobile Specialist)                      ║   • Glass Whiteboard Arsitektur
+   B3: Maya  (Cybersecurity Auditor)                  ║
+```
+
+## Mulai Cepat di Windows (Google Antigravity)
+Jalankan salah satu cara berikut:
+1. **Menggunakan PowerShell Script**:
+   ```powershell
+   .\kantor.ps1 start
+   # Buka http://127.0.0.1:8788/kerja di browser
+   # Hentikan: .\kantor.ps1 stop
+   ```
+2. **Atau Dobel-Klik Batch File**:
+   - `start-kantor.bat` (menyalakan server dan membuka browser otomatis).
+   - `stop-kantor.bat` (menghentikan server).
 
 ## Kebutuhan
 | Komponen | Keterangan |

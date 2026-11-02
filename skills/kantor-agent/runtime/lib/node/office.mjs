@@ -39,8 +39,13 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
     const segs = r.segs.map(([a, b]) => ({ start: tsMs(a), startIso: a, end: b === null ? null : tsMs(b), endIso: b }));
     let status = r.limit ? 'limit' : 'selesai';
     let reason = null;
+    if (segs.length === 0) {
+      const st = tsMs(r.started) || (now - 60000);
+      const en = r.updated ? tsMs(r.updated) : null;
+      segs.push({ start: st, startIso: r.started || isoMs(st), end: en, endIso: r.updated || null });
+    }
     const last = segs[segs.length - 1];
-    if (last.end === null) {
+    if (last && last.end === null) {
       const st = (stops.get(r.id) ?? []).filter((ms) => ms >= last.start);
       const upd = tsMs(r.updated);
       if (st.length) {
@@ -70,7 +75,13 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
   for (const r of runs) r.effSegs.forEach((sg, k) => jobs.push({ run: r, k, ...sg, who: null }));
   jobs.sort((a, b) => cmp(a.start, b.start) || strcmp(a.run.id, b.run.id) || cmp(a.k, b.k));
   const pool = cfg.team.map(() => ({ job: null }));
-  const fl = [];
+  const studioSpecialists = [
+    { name: 'Yoga', role: 'Database Architect', match: /yoga|database|skema|schema|\bsql\b|cache|redis|migrat/i },
+    { name: 'Dewi', role: 'API Integrator', match: /dewi|\bapi\b|integrat|endpoint|rest|postman|swagger|webhook/i },
+    { name: 'Rudi', role: 'Mobile Specialist', match: /rudi|mobile|android|compose|kotlin|jetpack/i },
+    { name: 'Maya', role: 'Cybersecurity Auditor', match: /maya|cyber|cybersec|owasp|penetration|pentest|security audit/i },
+  ];
+  const fl = studioSpecialists.map((sp) => ({ job: null, name: sp.name, role: sp.role }));
   const charOf = new Map();
   const free = (slot, start) => slot.job === null || (slot.job.end !== null && slot.job.end + CD <= start);
   for (const job of jobs) {
@@ -81,6 +92,43 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
       if ((slot.job !== null && slot.job.run === job.run) || free(slot, job.start)) pick = prev;
     }
     if (pick === null) {
+      // Pencocokan cerdas berdasarkan nama karakter atau peran spesialis
+      const text = `${job.run.description || ''} ${job.run.agentType || ''}`.toLowerCase();
+
+      // 1. Cek spesialis studio baris belakang (Yoga, Dewi, Rudi, Maya)
+      for (let s = 0; s < studioSpecialists.length; s++) {
+        if (studioSpecialists[s].match.test(text)) {
+          if (free(fl[s], job.start)) {
+            pick = { kind: 'fl', idx: s, name: studioSpecialists[s].name, role: studioSpecialists[s].role };
+            break;
+          }
+        }
+      }
+
+      // 2. Cek nama anggota tim baris depan (Budi, Sari, Agus, Rina)
+      if (pick === null) {
+        let preferredTeamIdx = -1;
+        for (let t = 0; t < cfg.team.length; t++) {
+          if (text.includes(cfg.team[t].toLowerCase())) {
+            preferredTeamIdx = t;
+            break;
+          }
+        }
+
+        // Cek peran tim inti
+        if (preferredTeamIdx < 0) {
+          if (/architect|arsitek|vision|analis/i.test(text)) preferredTeamIdx = 0; // Budi
+          else if (/wpf|mvvm|developer|frontend|coder/i.test(text)) preferredTeamIdx = 1; // Sari
+          else if (/safety|memori|memory/i.test(text)) preferredTeamIdx = 2; // Agus
+          else if (/test|qa|tester|pengujian|verify/i.test(text)) preferredTeamIdx = 3; // Rina
+        }
+
+        if (preferredTeamIdx >= 0 && preferredTeamIdx < pool.length && free(pool[preferredTeamIdx], job.start)) {
+          pick = { kind: 'pool', idx: preferredTeamIdx, name: cfg.team[preferredTeamIdx] };
+        }
+      }
+    }
+    if (pick === null) {
       const i = pool.findIndex((s) => free(s, job.start));
       if (i >= 0) pick = { kind: 'pool', idx: i, name: cfg.team[i] };
     }
@@ -88,11 +136,17 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
       let j = fl.findIndex((s) => free(s, job.start));
       if (j < 0) {
         j = fl.length;
-        fl.push({ job: null, name: null });
+        fl.push({ job: null, name: null, role: 'Spesialis' });
       }
       let name;
-      if (prev !== null && prev.kind === 'fl') name = prev.name;
-      else {
+      let role = fl[j]?.role || 'Spesialis';
+      if (prev !== null && prev.kind === 'fl') {
+        name = prev.name;
+        role = prev.role || role;
+      } else if (j < studioSpecialists.length) {
+        name = studioSpecialists[j].name;
+        role = studioSpecialists[j].role;
+      } else {
         const used = new Set(fl.filter((s) => !free(s, job.start)).map((s) => s.name));
         const L = cfg.freelancers.length;
         const base = hash(job.run.id) % L;
@@ -106,12 +160,13 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
         }
         if (name === null) name = `${cfg.freelancers[base]} ${j + 1}`;
       }
-      pick = { kind: 'fl', idx: j, name };
+      pick = { kind: 'fl', idx: j, name, role };
     }
     if (pick.kind === 'pool') pool[pick.idx].job = job;
     else {
       fl[pick.idx].job = job;
       fl[pick.idx].name = pick.name;
+      if (pick.role) fl[pick.idx].role = pick.role;
     }
     job.who = pick;
     charOf.set(job.run.id, pick);
@@ -119,9 +174,16 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
 
   const ketuaColor = cfg.colors.ketua;
   const flPal = cfg.colors.freelancers;
-  const charInfo = (who, run) => (who.kind === 'pool'
-    ? { key: `tim-${who.idx}`, name: cfg.team[who.idx], label: cfg.team[who.idx], color: cfg.colors.team[who.idx % cfg.colors.team.length] }
-    : { key: `fl-${run.id}`, name: who.name, label: `Freelancer · ${who.name}`, color: flPal[hash(who.name) % flPal.length] });
+  const charInfo = (who, run) => {
+    if (who.kind === 'pool') {
+      return { key: `tim-${who.idx}`, name: cfg.team[who.idx], label: cfg.team[who.idx], role: ['Lead Architect', 'Core Dev', 'Memory Auditor', 'QA Lead'][who.idx] || 'Tim', color: cfg.colors.team[who.idx % cfg.colors.team.length] };
+    }
+    if (who.kind === 'studio') {
+      const sp = studioSpecialists[who.idx];
+      return { key: `studio-${who.idx}`, name: sp.name, label: sp.name, role: sp.role, color: ['#0f8fa3', '#9a7418', '#4f7d3a', '#8a4fa8'][who.idx] };
+    }
+    return { key: `fl-${who.idx}-${who.name}`, name: who.name, label: who.name, role: who.role || fl[who.idx]?.role || 'Spesialis', color: flPal[who.idx % flPal.length] || flPal[hash(who.name) % flPal.length] };
+  };
   const jobState = (job) => (job.end === null ? 'bekerja' : now - job.end < CD ? 'selesai' : 'santai');
   const task = (r) => (r.description !== '' ? r.description : r.agentType);
   const runOut = (job) => {
@@ -148,13 +210,27 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
     const info = charInfo({ kind: 'pool', idx: i }, null);
     return { ...info, kind: 'tim', slot: i, desk: i, state: slot.job ? jobState(slot.job) : 'santai', run: slot.job ? runOut(slot.job) : null };
   });
+  const studio = studioSpecialists.map((sp, j) => {
+    const slot = fl[j];
+    const info = charInfo({ kind: 'studio', idx: j }, slot?.job?.run || null);
+    const st = slot && slot.job ? jobState(slot.job) : 'santai';
+    return {
+      ...info,
+      kind: 'studio',
+      slot: j,
+      desk: `B${j}`,
+      state: st,
+      run: slot && slot.job ? runOut(slot.job) : null
+    };
+  });
   const freelancers = [];
-  fl.forEach((slot, j) => {
+  fl.slice(studioSpecialists.length).forEach((slot, j) => {
+    const actualIdx = j + studioSpecialists.length;
     if (slot.job === null) return;
     const st = jobState(slot.job);
     if (st === 'santai') return;
-    const info = charInfo({ kind: 'fl', idx: j, name: slot.name }, slot.job.run);
-    freelancers.push({ ...info, kind: 'freelancer', slot: j, desk: j < cfg.spare_desks ? j : null, state: st, run: runOut(slot.job) });
+    const info = charInfo({ kind: 'fl', idx: actualIdx, name: slot.name }, slot.job.run);
+    freelancers.push({ ...info, kind: 'freelancer', slot: actualIdx, desk: actualIdx < cfg.spare_desks ? actualIdx : null, state: st, run: runOut(slot.job) });
   });
 
   // ---- Ketua (sesi utama) — teks jawaban sesi utama tidak pernah ditampilkan, hanya aksi alat & penanda instruksi user
@@ -177,7 +253,7 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
   const dm = di >= 0 ? mains[di] : null;
   const activeMains = states.filter((s) => s[0] === 'bekerja').length;
   const ketua = {
-    key: 'ketua', name: cfg.ketua, label: cfg.ketua, role: 'Ketua', kind: 'ketua', color: ketuaColor,
+    key: 'ketua', name: cfg.ketua, label: scan.account?.alias ? `${cfg.ketua} (${scan.account.alias})` : cfg.ketua, role: 'Ketua', kind: 'ketua', color: ketuaColor,
     state: dm ? states[di][0] : 'santai',
     activity: dm ? states[di][1] : null,
     session: dm ? dm.session.slice(0, 8) : null,
@@ -262,10 +338,12 @@ export function buildState({ projectDir, storageDir, cfg, now }) {
     version: VERSION,
     now: isoMs(now),
     project: cfg.title,
+    account: scan.account || null,
     names: [cfg.ketua, ...cfg.team].join('|'),
     transcripts: scan.exists,
     ketua,
     team,
+    studio,
     freelancers,
     feed: merged.map((x) => x[0].e),
     runs: hist,

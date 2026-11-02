@@ -28,6 +28,7 @@ try {
 }
 const STORAGE = process.env.KANTOR_STORAGE ? path.resolve(process.env.KANTOR_STORAGE) : null;
 const { loadConfig } = await import(new URL('../lib/node/config.mjs', import.meta.url));
+const { getActiveAccount } = await import(new URL('../lib/node/antigravity.mjs', import.meta.url));
 const { buildState } = await import(new URL('../lib/node/office.mjs', import.meta.url));
 const { pageConfig, hostAllowed, SECURITY_HEADERS } = await import(new URL('../lib/node/http.mjs', import.meta.url));
 
@@ -75,11 +76,16 @@ async function handle(req, res) {
   // config dibaca per permintaan supaya perubahan .claude/kantor-agent.json langsung terpakai
   const cfg = loadConfig(RUNTIME, PROJECT);
   if (p === '/kerja') {
-    const page = fs.readFileSync(path.join(RUNTIME, 'views', 'page.html'), 'utf8');
+    let page = fs.readFileSync(path.join(RUNTIME, 'views', 'page.html'), 'utf8');
+    const account = getActiveAccount();
+    if (account && account.email) {
+      page = page.replace('<p id="sub">Memantau sesi Claude Code lokal</p>', `<p id="sub">Memantau sesi Antigravity (${htmlEsc(account.email)})</p>`);
+    }
     const html = page.replace(/\{\{TITLE\}\}|\{\{CONFIG_SCRIPT\}\}/g, (m) => (m === '{{TITLE}}'
       ? htmlEsc(cfg.title)
       : `<script>window.KANTOR = ${scriptJson(pageConfig(cfg))};</script>`));
-    return send(res, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' }, html);
+    const bustHtml = html.replace(/\/kerja\/assets\/kantor\.js(\?[^"]*)?/, `/kerja/assets/kantor.js?t=${Date.now()}`);
+    return send(res, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' }, bustHtml);
   }
   if (p === '/kerja/api/state') {
     const state = buildState({ projectDir: PROJECT, storageDir: STORAGE, cfg, now: Date.now() });
@@ -100,7 +106,7 @@ async function handle(req, res) {
     }
     if (!f.startsWith(base + path.sep) || !st.isFile() || path.extname(f).toLowerCase() !== '.js') return send(res, 404, {}, '');
     const etag = `"${Math.floor(st.mtimeMs / 1000).toString(16)}-${st.size.toString(16)}"`;
-    const h = { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600', ETag: etag };
+    const h = { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0', 'Pragma': 'no-cache', 'Expires': '0' };
     if (req.headers['if-none-match'] === etag) return send(res, 304, h, '');
     return send(res, 200, { ...h, 'Content-Length': String(st.size) }, req.method === 'HEAD' ? '' : fs.readFileSync(f));
   }
@@ -124,7 +130,7 @@ server.on('error', (e) => {
   console.error(`[kantor] server gagal: ${e.code === 'EADDRINUSE' ? `port ${port} sudah dipakai` : e.message}`);
   process.exit(e.code === 'EADDRINUSE' ? 3 : 1);
 });
-server.listen(port, bind, () => console.log(`Kantor Agent: http://${bind === '0.0.0.0' ? '127.0.0.1' : bind}:${port}/kerja  (Node ${process.versions.node})`));
+server.listen(port, bind, () => console.log(`Kantor Mari Partner: http://${bind === '0.0.0.0' ? '127.0.0.1' : bind}:${port}/kerja  (Node ${process.versions.node})`));
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, () => {
     server.close(() => process.exit(0));

@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { AntigravityScanner, getActiveAccount } from './antigravity.mjs';
 import {
   basename, clip, globDir, isDir, isFile, isObj, isPlainObj, mbLen, mtimeSec, phpLtrim, phpTrim, readText, redact,
   oneLine, safeLine, strcmp, tsMs, values,
@@ -46,6 +47,9 @@ export class Transcripts {
   }
 
   scan(nowSec) {
+    const agScanner = new AntigravityScanner(this.storageDir, this.cfg);
+    const agScan = agScanner.scan(nowSec);
+    if (agScan.exists) return agScan;
     const root = transcriptRoot(this.projectDir);
     if (!isDir(root)) return { exists: false, runs: [], mains: [] };
     const cutoff = nowSec - this.cfg.window_days * 86400;

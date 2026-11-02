@@ -1,3 +1,5 @@
+// [KANTOR MARI PARTNER] v20261102_v3
+console.log('%c[Kantor Mari Partner] Loaded v20261102_v3 - Ruang Lab & Testing Mari Partner Aktif.', 'color: #23874f; font-weight: bold;');
 // Kantor Agent — kantor 3D (three.js r170) yang digerakkan data nyata dari /kerja/api/state.
 // Ketua (sesi utama) punya meja sendiri; 4 anggota tim santai di lounge dan duduk bekerja saat mendapat subagent;
 // freelancer datang lewat pintu bila tim penuh. Tidak ada aktivitas palsu: tanpa data, semua santai.
@@ -15,6 +17,15 @@ const TEAM_NAMES = Array.isArray(CFG.team) && CFG.team.length === 4 ? CFG.team :
 const KETUA_NAME = typeof CFG.ketua === 'string' ? CFG.ketua : 'Joko';
 const COLORS = CFG.colors || { ketua: '#6a55c9', team: ['#3f6fd1', '#2f9a6d', '#d9772f', '#c2417a'], freelancers: ['#0f8fa3'] };
 const NAMES_SIG = [KETUA_NAME, ...TEAM_NAMES].join('|');
+const STUDIO_NAMES = ['Yoga', 'Dewi', 'Rudi', 'Maya'];
+const STUDIO_ROLES = ['Database Architect', 'API Integrator', 'Mobile Specialist', 'Cybersecurity Auditor'];
+const STUDIO_COLORS = ['#0f8fa3', '#9a7418', '#4f7d3a', '#8a4fa8'];
+const STUDIO_LOOKS = [
+  { shirt: '#0f8fa3', pants: '#2e333d', skin: '#d6a07a', hair: '#140f0c', hairStyle: 'short', glasses: true },
+  { shirt: '#9a7418', pants: '#303542', skin: '#e0b08a', hair: '#3b2a1f', hairStyle: 'bun' },
+  { shirt: '#4f7d3a', pants: '#3a4150', skin: '#c68a5e', hair: '#2b2016', hairStyle: 'side', headphones: true },
+  { shirt: '#8a4fa8', pants: '#2f3440', skin: '#a86e45', hair: '#1c1512', hairStyle: 'long' },
+];
 const SPARE = Math.max(0, Math.min(4, Number(CFG.spare_desks) || 4));
 
 // ---------------------------------------------------------------- bantuan umum
@@ -112,15 +123,15 @@ if (HAS_GL) {
 const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.1, 140);
 // sudut kamera awal: layar sempit (ponsel) sedikit lebih jauh & bergeser ke kiri agar meja Ketua terlihat
 const HOME = innerWidth < 820
-  ? { pos: new THREE.Vector3(-2.2, 14.5, 19.5), target: new THREE.Vector3(-1.9, 0.4, -1.4) }
-  : { pos: new THREE.Vector3(-1.2, 12.5, 16.8), target: new THREE.Vector3(-1.0, 0.6, -1.2) };
+  ? { pos: new THREE.Vector3(1.0, 16.5, 23.5), target: new THREE.Vector3(2.5, 0.4, -1.4) }
+  : { pos: new THREE.Vector3(4.0, 15.2, 21.5), target: new THREE.Vector3(4.2, 0.6, -1.2) };
 camera.position.copy(HOME.pos);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(HOME.target);
 controls.enableDamping = !REDUCED;
 controls.dampingFactor = 0.07;
 controls.minDistance = 5;
-controls.maxDistance = 34;
+controls.maxDistance = 46;
 controls.minPolarAngle = 0.3;
 controls.maxPolarAngle = 1.36;
 controls.minAzimuthAngle = -0.8;
@@ -129,10 +140,10 @@ controls.maxAzimuthAngle = 1.25;
 const hemi = new THREE.HemisphereLight('#fdf7ef', '#c9b9a3', 1.05);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff1dc', 2.3);
-sun.position.set(8, 14, 10);
+sun.position.set(12, 16, 12);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 13, bottom: -13, near: 1, far: 50 });
+Object.assign(sun.shadow.camera, { left: -18, right: 26, top: 15, bottom: -15, near: 1, far: 60 });
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.02;
 scene.add(sun);
@@ -201,7 +212,7 @@ const MONO = 'ui-monospace, Menlo, Consolas, monospace';
 const V = (x, z) => new THREE.Vector3(x, 0, z);
 
 // ---------------------------------------------------------------- ruangan
-const ROOM = { x0: -10, x1: 10, z0: -7, z1: 6, h: 5.2 };
+const ROOM = { x0: -10, x1: 21, z0: -7, z1: 6, h: 5.2 };
 const CORRIDOR_Z = -2.1;
 (function buildRoom() {
   const fl = canvasTex(1024, 1024);
@@ -326,6 +337,8 @@ function buildWindow(cx, cy, w, h) {
 }
 buildWindow(3.5, 2.75, 2.0, 2.0);
 buildWindow(6.3, 2.75, 2.0, 2.0);
+buildWindow(13.2, 2.75, 2.0, 2.0);
+buildWindow(17.2, 2.75, 2.0, 2.0);
 function paintSky(night) {
   for (const s of windows) {
     const g = s.ctx.createLinearGradient(0, 0, 0, 256);
@@ -1108,10 +1121,20 @@ function monitor(w, h) {
 // meja: A0 = Ketua, A1–A4 = tim, B0–B3 = meja cadangan freelancer
 const ROW_A_Z = -4.3;
 const ROW_B_Z = -0.7;
+
+const LAB_DESKS = [
+  { id: 'C0', x: 13.0, z: ROW_A_Z, kind: 'lab', idx: 0, color: '#23874f' },
+  { id: 'C1', x: 17.2, z: ROW_A_Z, kind: 'lab', idx: 1, color: '#23874f' },
+  { id: 'C2', x: 13.0, z: ROW_B_Z, kind: 'lab', idx: 2, color: '#23874f', gap: 11.4 },
+  { id: 'C3', x: 17.2, z: ROW_B_Z, kind: 'lab', idx: 3, color: '#23874f', gap: 15.6 },
+];
 const DESK_DEFS = [
+
   { id: 'A0', x: -7.0, z: ROW_A_Z, kind: 'ketua', color: COLORS.ketua },
   ...TEAM_NAMES.map((n, i) => ({ id: `A${i + 1}`, x: -4.2 + i * 2.8, z: ROW_A_Z, kind: 'tim', idx: i, color: COLORS.team[i % COLORS.team.length] })),
-  ...Array.from({ length: SPARE }, (_, j) => ({ id: `B${j}`, x: -7.0 + j * 2.8, z: ROW_B_Z, kind: 'spare', idx: j, color: '#9a938a', gap: [-8.6, -5.6, -2.8, 2.8][j] })),
+  ...Array.from({ length: SPARE }, (_, j) => ({ id: `B${j}`, x: -7.0 + j * 2.8, z: ROW_B_Z, kind: 'studio', idx: j, color: STUDIO_COLORS[j] || '#9a938a', gap: [-8.6, -5.6, -2.8, 2.8][j] })),
+,
+  ...LAB_DESKS,
 ];
 const desks = {};
 function drawPlate(d, name, role, css) {
@@ -1196,7 +1219,9 @@ function buildDesk(def) {
   const d = { ...def, group: desk, seat, main, side, deskMug, lamp, plate: np, data: null, who: null, sig: '', drawnAt: 0, plateSig: '' };
   desks[def.id] = d;
   if (def.kind === 'ketua') drawPlate(d, KETUA_NAME, 'Ketua', def.color);
-  else if (def.kind === 'tim') drawPlate(d, TEAM_NAMES[def.idx], 'Tim', def.color);
+  else if (def.kind === 'tim') drawPlate(d, TEAM_NAMES[def.idx], ['Lead Architect', 'Core Developer', 'Memory Auditor', 'QA Lead'][def.idx] || 'Tim', def.color);
+  else if (def.kind === 'studio') drawPlate(d, STUDIO_NAMES[def.idx], STUDIO_ROLES[def.idx], def.color);
+  else if (def.kind === 'lab') drawPlate(d, `Lab PC ${def.idx + 1}`, 'Standby Agent', '#23874f');
   else drawPlate(d, `Meja cadangan ${def.idx + 1}`, 'Freelancer', def.color);
 }
 DESK_DEFS.forEach(buildDesk);
@@ -1221,25 +1246,66 @@ const SPOTS = {
   meet2: { pos: V(MEET.x - 1.346, MEET.z + 0.103), heading: 1.648, spoke: [V(-8.6, CORRIDOR_Z), V(-8.6, 1.6), V(-7.6, 3.8)], sit: 'chair' },
   meet3: { pos: V(MEET.x + 0.762, MEET.z + 1.114), heading: -2.54, spoke: [V(-2.8, CORRIDOR_Z), V(-2.8, 1.2), V(-3.3, 4.6)], sit: 'chair' },
   bookshelf: { pos: V(-8.9, 3.8), heading: -Math.PI / 2, spoke: [V(-8.6, CORRIDOR_Z), V(-8.6, 2.4)] },
+  lab_server: { pos: V(19.0, -5.2), heading: -Math.PI / 2, spoke: [V(11.0, CORRIDOR_Z), V(19.0, CORRIDOR_Z), V(19.0, -4.8)] },
+  lab_bench: { pos: V(15.5, 2.2), heading: 0, spoke: [V(11.0, CORRIDOR_Z), V(15.5, CORRIDOR_Z), V(15.5, 1.6)] },
+  lab_board: { pos: V(15.0, -5.8), heading: Math.PI, spoke: [V(11.0, CORRIDOR_Z), V(15.0, CORRIDOR_Z), V(15.0, -5.2)] },
 };
 for (const [id, s] of Object.entries(SPOTS)) PLACES[`spot:${id}`] = { kind: 'spot', spot: id, ...s };
 PLACES.door = { kind: 'door', pos: V(ROOM.x0 - 0.9, CORRIDOR_Z), heading: -Math.PI / 2, spoke: [V(ROOM.x0 + 0.6, CORRIDOR_Z)] };
 const SPOT_IDS = Object.keys(SPOTS);
 
 const QUIPS = {
-  tv: ['Filmnya lagi seru nih 🍿', 'Eh, aktornya siapa ya?', 'Jangan di-skip dulu!', 'Episode ini bagus banget'],
-  ps: ['Gooool! ⚽', 'Satu match lagi ah 🎮', 'Stiknya agak nge-drift nih', 'Tunggu, aku belum siap!'],
-  coffee: ['Ngopi dulu biar melek ☕', 'Espresso double, please', 'Wangi banget kopinya', 'Gulanya di mana ya?'],
-  water: ['Minum air putih dulu 💧', 'Galonnya tinggal dikit', 'Seger!', 'Airnya dingin, mantap'],
-  guitar: ['🎸 jreng… jreng…', 'Request lagu dong', 'Kuncinya G atau C ya?', 'Senarnya perlu diganti'],
-  window: ['Langitnya cerah ya ☀️', 'Peregangan dulu, pegal 🙆', 'Macet banget di bawah', 'Ada layangan tuh!'],
-  meet1: ['Rapat lima menit, janji!', 'Siapa yang pesan kopi?', 'Kursinya empuk juga'],
-  meet2: ['Diskusi ringan dulu ☕', 'Laptopnya siapa ini?', 'Duduk dulu ah'],
-  meet3: ['Meja ini paling adem', 'Ngobrol santai dulu', 'Kita bahas nanti aja'],
-  bookshelf: ['Buku ini seru juga 📚', 'Wah, ada komik!', 'Bukunya belum dikembalikan nih'],
+  tv: [
+    'Filmnya lagi seru nih 🍿', 'Eh, aktornya siapa ya?', 'Jangan di-skip dulu!',
+    'Episode ini bagus banget', 'Resolusinya 4K tajem bener', 'Remote-nya mana nih?',
+    'Soundtrack-nya bikin merinding', 'Wah, plot twist-nya nggak ketebak!'
+  ],
+  ps: [
+    'Gooool! ⚽', 'Satu match lagi ah 🎮', 'Stiknya agak nge-drift nih',
+    'Tunggu, aku belum siap!', 'Refleks gaming-ku masih tajam 😎', 'Kena kartu merah dong!',
+    'Pake tim mana nih sekarang?', 'Pemanasan jempol dulu biar lincah'
+  ],
+  coffee: [
+    'Ngopi dulu biar melek ☕', 'Espresso double, please', 'Wangi banget kopinya',
+    'Gulanya di mana ya?', 'Kopi tubruk apa latte art nih?', 'Tanpa kopi, bug merajalela',
+    'Aroma arabika emang juara', 'Satu cangkir lagi buat nyelesaiin PR hari ini'
+  ],
+  water: [
+    'Minum air putih dulu 💧', 'Galonnya tinggal dikit', 'Seger!',
+    'Airnya dingin, mantap', 'Hidrasi itu kunci fokus', 'Bawa tumbler sendiri lebih hemat',
+    'Dua liter sehari wajib terpenuhi'
+  ],
+  guitar: [
+    '🎸 jreng… jreng…', 'Request lagu dong', 'Kuncinya G atau C ya?',
+    'Senarnya perlu diganti', 'Petikan akustik penenang pikiran', 'Solo gitar tipis-tipis',
+    'Lagu pop lawas emang paling dapet feel-nya'
+  ],
+  window: [
+    'Langitnya cerah ya ☀️', 'Peregangan dulu, pegal 🙆', 'Macet banget di bawah',
+    'Ada layangan tuh!', 'Mata istirahat liat pemandangan jauh', 'Sunset-nya mulai kelihatan oranye',
+    'Angin sepoi-sepoi bikin betah'
+  ],
+  meet1: [
+    'Rapat lima menit, janji!', 'Siapa yang pesan kopi?', 'Kursinya empuk juga',
+    'Agenda singkat padat jelas', 'Bawa spidol whiteboard-nya sekalian', 'Notulensinya siapa nih?'
+  ],
+  meet2: [
+    'Diskusi ringan dulu ☕', 'Laptopnya siapa ini?', 'Duduk dulu ah',
+    'Brainstorming santai anti-tegang', 'Idenya menarik juga tuh', 'Yuk selaraskan pemahaman dulu'
+  ],
+  meet3: [
+    'Meja ini paling adem', 'Ngobrol santai dulu', 'Kita bahas nanti aja',
+    'Suasananya kondusif banget', 'Enak buat fokus nulis dokumentasi'
+  ],
+  bookshelf: [
+    'Buku ini seru juga 📚', 'Wah, ada komik!', 'Bukunya belum dikembalikan nih',
+    'Clean Code & Architecture wajib dibaca ulang', 'Buku desain UI ini estetik banget',
+    'Tumpukan buku referensi andalan'
+  ],
 };
-// obrolan receh (sengaja tidak menyebut data nyata apa pun)
+// obrolan receh & tech banter antar anggota tim
 const CHAT = [
+  // --- Santai & Keseharian Kantor ---
   ['{to}, main bola di PS yuk! Yang kalah traktir bakso', 'Ogah, kemarin aku kalah 3–0 😅'],
   ['Filmnya jangan di-spoiler ya, {to}!', 'Siap, mulutku terkunci 🤐'],
   ['Kopinya kok pahit banget?', 'Itu espresso, bukan kopi sachet 😂'],
@@ -1280,6 +1346,143 @@ const CHAT = [
   ['Kayaknya perlu beli galon lagi', 'Nanti aku telepon depot'],
   ['{to}, jangan lupa minum air', 'Siap, bos air 💧'],
   ['Sore ini cerah ya', 'Enak buat jalan-jalan'],
+
+  // --- Tech Banter, Koding & Developer Life ---
+  ['{to}, keyboard mechanical-mu switch apa? Renyah bener', 'Blue switch dong, biar sekantor tahu aku lagi ngetik ⌨️'],
+  ['Tadi ada bug aneh, pas di-restart kok sembuh sendiri ya?', 'Klasik! Fitur auto-healing itu namanya 😂'],
+  ['{to}, deploy ke production hari Jumat berani nggak?', 'Jangan cari perkara, weekend mau tenang wkwk'],
+  ['Dark mode atau light mode nih, {to}?', 'Dark mode selamanya! Mata ini bukan senter 🕶️'],
+  ['{to}, monitor kedua bikin produktif apa malah buka medsos?', 'Dua-duanya dong, multi-tasking seimbang 🖥️'],
+  ['Commit message-mu kok cuma "fix dikit" sama "final beneran"?', 'Nanti yang ketiga "final_fix_terakhir_sumpah" 🤣'],
+  ['{to}, kamu hafal regex nggak sih?', 'Nggak lah, aku copas dari StackOverflow kayak programmer normal'],
+  ['WiFi kantor kok kalah kenceng sama tethering hp ya?', 'Lagi ada yang download ISO kali di pojokan'],
+  ['Cache browser udah di-hard refresh belum, {to}?', 'Udah lima kali Ctrl+Shift+R, masih bandel juga!'],
+  ['{to}, font kodinganmu apa? Kelihatan estetik banget', 'Fira Code dong, ligatur panah sama tanda serunya cakep ✨'],
+  ['Ngetik kodingan pakai gaya 10 jari apa gaya burung elang?', 'Gaya elang tapi 90 WPM, jangan remehkan! 🦅'],
+  ['{to}, laptopmu kok bunyinya kayak mesin pesawat mau lepas landas?', 'Lagi compile project besar, kipasnya lagi berjuang keras 💨'],
+  ['Tab atau spasi nih, {to}?', 'Spasi 4 dong, biar konsisten di semua IDE'],
+  ['{to}, Docker container makan RAM 8 GB nih', 'Tutup dulu containernya sebelum laptopnya meledak 🔥'],
+  ['Tadi malam mimpi refactoring clean architecture coba', 'Kurang-kurangin ngoding sampai jam tiga subuh wkwk'],
+  ['Kabel monitor HDMI-nya goyang dikit langsung kedip', 'Jangan disentuh! Di situ letak keseimbangan alam semesta'],
+  ['{to}, jangan lupa git pull dulu sebelum ngoding ya', 'Siap, anti merge-conflict club! 🛡️'],
+  ['Shortcut format kode otomatis apa ya tadi?', 'Shift + Alt + F, penyelamat kerapian kodingan'],
+  ['Lagi nunggu automated test selesai nih, lumayan bisa ngopi', 'Semoga hijau semua, jangan ada yang merah satu pun 🟢'],
+  ['{to}, seblak kuah pedas level 3 sore-sore gini enak kayaknya', 'Wah ide brilian, pesen di aplikasi sekarang yuk! 🍲'],
+
+    // --- Dialog Ruang Lab & Kantor Mari Partner ---
+  ['{to}, ruang Lab baru di sebelah adem banget ya?', 'Iya, AC server rack-nya diset 19 derajat biar hardware selalu prima ❄️'],
+  ['PC di lab udah siap dipake subagent baru belum, {to}?', 'Udah standby semua, tinggal tunggu komando dari Joko! 💻'],
+  ['{to}, tadi liat kamera AOI di meja uji coba gak?', 'Keren banget, resolusi tinggi bisa deteksi solderan micro 🔍'],
+  ['Server rack baru kita warnanya garang ya, {to}?', 'LED indikatornya hijau semua, tanda semua service online 🟢'],
+  ['{to}, nanti sore testing stress-test di lab yuk?', 'Ayo, sekalian profiling memory leak bareng Agus! 🚀'],
+  ['Kantor Mari Partner sekarang jadi luas banget ya', 'Bener, dua ruangan connected bikin suasana ngoding makin lega ✨'],
+
+  // --- Spesialis Banter (Database, API, Mobile, Security, QA, UI) ---
+  ['{to}, query tabel satu juta baris kok bisa secepat kilat?', 'Pake composite index dong, zero full-table-scan! ⚡'],
+  ['{to}, API response-nya udah dibungkus envelope standar kan?', 'Udah rapi, ada status, data, sama meta timestamp-nya 📦'],
+  ['Aplikasi Android-nya smooth banget di 120 Hz, {to}', 'Kuncinya di StateFlow sama smart recomposition skipping 📱'],
+  ['{to}, form login kita udah aman dari SQL Injection kan?', 'Aman terkendali, prepared statement dan whitelist input udah rapat 🔒'],
+  ['{to}, nemu berapa bug hari ini pas testing?', 'Baru dapet tiga edge-case unik, siap-siap dibenerin ya 🐞'],
+  ['Tampilan antarmuka ini udah ramah dark mode belum, {to}?', 'Kontras warnanya udah lolos uji WCAG, nyaman di mata 🎨'],
+  ['{to}, ada memory leak nggak di modul kamera inspeksi?', 'Nihil! Semua Mat OpenCV udah di-Dispose rapi sebelum GC jalan 🧹'],
+  ['{to}, spec OpenAPI Swagger-nya udah sinkron sama Postman?', 'Tersinkronisasi otomatis, tinggal export JSON sekali klik 🚀'],
+  ['{to}, background worker di Android hemat baterai kan?', 'Pasti, WorkManager-nya nunggu HP ngecas dan konek WiFi dulu 🔋'],
+  ['{to}, token JWT-nya disimpan di mana?', 'Di HttpOnly Cookie, hacker nggak bakal bisa intip lewat XSS 🛡️'],
+  ['{to}, tombolnya ada konfirmasi dialog nggak sebelum hapus data?', 'Ada dong, modal konfirmasi elegan biar gak kepencet 🛑'],
+  ['{to}, log inspeksi yang udah setahun diapain enaknya?', 'Auto-archiving ke storage cadangan biar SQLite tetep ramping 📂'],
+  ['{to}, ViewModel-nya nggak nahan context Activity kan?', 'Aman, zero lifecycle leak berkat AndroidViewModel! 💯'],
+  ['{to}, unit test coverage kita udah berapa persen?', 'Udah di atas 85%, siap rilis tanpa was-was ✅'],
+  ['{to}, nanti sore mampir ke warung es campur depan kantor yuk?', 'Gaspol, habis tugas Joko beres kita langsung meluncur! 🍧']
+,
+
+  // --- Koleksi Percakapan Tambahan Kantor Mari Partner ---
+  ["{to}, mie rebus pake telor setengah mateng pas ujan gini surga dunia ya", "Tambah rawit potong lima biji, langsung melek! 🍜"],
+  ["Kopi susu gula aren siapa nih di kulkas gak ada namanya?", "Punya Yoga kayaknya, tadi nitip pas jam makan siang ☕"],
+  ["{to}, risol mayo di pantry masih ada gak?", "Udah ludes diserbu Sari sama Rina tadi wkwk 🥐"],
+  ["Siapa yang naro durian di kulkas pantry hayo?", "Aromanya semerbak sampai ke ruang lab ya ampun 😂"],
+  ["{to}, siang ini makan sate padang atau soto betawi?", "Sate padang dong, kuah kentalnya mantul! 🍢"],
+  ["Cireng bumbu rujak anget enak nih buat temen ngoding", "Pesen yuk, jangan lupa minta bumbu rujaknya dipisah 🤤"],
+  ["{to}, kamu kalau beli es teh manis ukuran jumbo apa reguler?", "Jumbo lah, biar awet dari pagi sampai sore 🥤"],
+  ["Tadi pagi nemu bubur ayam toppingnya melimpah ruah", "Lokasi di mana tuh? Besok sarapan bareng ke sana yuk! 🥣"],
+  ["{to}, martabak telur dicocol kuah cuka enak banget", "Setuju, acar timun sama cabenya jangan sampai ketinggalan 🥞"],
+  ["Pesen dimsum mentai 4 porsi buat rame-rame yuk!", "Gas, aku yang pesan di aplikasi sekarang 🥟"],
+  ["{to}, camilan kacang almond-mu boleh minta dikit?", "Ambil aja, ada di toples meja baris B tuh 🥜"],
+  ["Siang-siang gini minum es kelapa muda seger banget", "Bener, langsung hilang dehidrasi seharian 🥥"],
+  ["{to}, siomay abang-abang depan kantor bumbunya legit ya", "Iya, bumbu kacangnya gurih dan tahunya lembut banget"],
+  ["Nasi goreng kambing pas lembur emang gak ada tandingannya", "Tapi jangan kebanyakan, nanti kolesterol naik wkwk 🍛"],
+  ["{to}, batagor kuah apa batagor kering bumbu kacang?", "Kering bumbu kacang, perasan jeruk limau-nya wajib! 🥟"],
+  ["Tadi ke minimarket ada promo beli 1 gratis 1 wafer coklat", "Wah rezeki nomplok, taro di meja pantry buat bersama 🍫"],
+  ["{to}, kamu kalau minum kopi pake sedotan apa langsung seruput?", "Seruput langsung dong, biar aroma kopinya kecium maksimal ☕"],
+  ["Donat kentang tabur gula halus di pantry buatan siapa ya?", "Tadi Sari bawa dari rumah, empuk banget kuenya! 🍩"],
+  ["{to}, sore ini ada yang jualan tahu gejrot lewat depan kantor", "Bungkus level 10 ya, kuahnya asem pedes seger! 🌶️"],
+  ["Siapa yang bawa keripik pedas level setan ini?", "Pasti Agus, tahan bener dia makan cabe segitu banyak 🔥"],
+  ["{to}, roti bakar coklat keju pas sore gini wangi banget", "Kombinasi klasik yang gak pernah gagal bikin kenyang 🍞"],
+  ["Minum air es banyak-banyak pas siang terik nikmat tiada tara", "Tapi jangan lupa minum air putih biasa juga ya biar seimbang 💧"],
+  ["{to}, pempek kapal selam kuah cukonya pedes mantap nih", "Cuko kental palembang emang paling juara 🐟"],
+  ["Hari Jumat besok makan seafood bareng yuk di deket pelabuhan", "Ide bagus, rayain sprint fitur beres bareng Joko! 🦐"],
+  ["{to}, kamu lebih suka teh botol kaca apa teh kotak?", "Teh botol kaca dingin, rasanya ada nostalgia tersendiri 🍾"],
+  ["\"It works on my machine\", kalimat paling keramat sedunia", "Yaudah laptopmu kita kirim ke server production aja wkwk 💻"],
+  ["{to}, PR 2 baris direview 45 menit, PR 2000 baris cuma di-LGTM 5 detik", "Hukum rimba code review emang suka aneh gitu 🤣"],
+  ["Console.log(\"HALO MASUK SINI DONG\") lupa dihapus pas deploy", "Untung Maya belum ngecek log production haha 🙈"],
+  ["{to}, pernah ngalamin bug yang pas mau ditunjukkin malah sembuh?", "Sering banget! Bug-nya demam panggung kayaknya 🎭"],
+  ["Koding 4 jam ternyata cuma gara-gara kurang kurung kurawal satu biji", "Momen hening paling menyakitkan bagi programmer 🤦‍♂️"],
+  ["{to}, StackOverflow down 30 menit, developer sedunia langsung panik", "Kayak anak ayam kehilangan induknya wkwk 🐥"],
+  ["Ukuran folder node_modules kok lebih gede dari file OS ya?", "Black hole di dalam harddisk itu namanya 🌌"],
+  ["{to}, kamu tim git rebase apa git merge?", "Rebase dong, biar commit history rapi lurus kayak jalan tol 🛣️"],
+  ["Siapa yang pernah ga sengaja git reset --hard?", "Jangan diingat lagi, itu trauma masa lalu yang kelam 😭"],
+  ["{to}, webcam laptopmu ditempel stiker ya?", "Iya, disuruh Maya biar privasi aman dari spyware 👁️"],
+  ["Kucing lewat di atas keyboard langsung nge-trigger hotkey misterius", "Malah ngebuka 10 window terminal baru sekaligus 🐱"],
+  ["{to}, monitor ultrawide bikin ngoding lebih fokus apa malah buka YouTube?", "50% ngoding, 50% liat dokumentasi sambil denger lo-fi 🎧"],
+  ["Ada comment \"// jangan dihapus, gatau kenapa tapi jalan\"", "Kodingan warisan purbakala jangan disentuh, nanti roboh! 🏺"],
+  ["{to}, kamu hafal shortcut IDE berapa banyak?", "Cuma Ctrl+C, Ctrl+V, sama Ctrl+Z yang beneran nempel di otot ⌨️"],
+  ["Tadi malam bangun jam 2 pagi gara-gara nemu solusi bug di mimpi", "Langsung loncat buka laptop sebelum idenya nguap ya? 💡"],
+  ["{to}, laptop baru ini keyboardnya empuk banget ya", "Enak buat ngetik kodingan seharian tanpa bikin jari pegal ✨"],
+  ["Siapa yang commit message-nya cuma titik (.) doang?", "Pasti yang ngejar commit streak hijau di GitHub wkwk 🟩"],
+  ["{to}, file .env jangan sampe ke-push ke repo publik ya!", "Udah masuk .gitignore dari detik pertama, aman sentosa 🔒"],
+  ["Baterai mouse wireless abis pas lagi live demo, horor bener", "Untung touchpad laptop masih responsif 🖱️"],
+  ["{to}, kamu ngetik sambil dengerin musik apa sunyi senyap?", "Musik synthwave instrumental tanpa lirik, bikin flow state! 🎶"],
+  ["Nemu kodingan lama buatan diri sendiri tahun 2022", "Pasti mbatin: \"siapa nih yang nulis kode berantakan begini?\" 😂"],
+  ["{to}, fungsi 800 baris ini mending di-refactor gak?", "Wajib! Potong jadi helper sama single-responsibility class ✂️"],
+  ["Pernah ga sengaja hapus database development?", "Pernah, tapi untung ada seeder otomatis tinggal migrate:fresh 📦"],
+  ["{to}, kamu pake extension linter apa aja di VS Code?", "ESLint, Prettier, sama SonarLint biar auto rapi seketika ✨"],
+  ["Compile project selesai dalam 3 detik, SSD NVMe baru emang jos", "Gak ada alasan bengong nunggu build lagi deh ⚡"],
+  ["Joko kalau lagi briefing santai tapi keputusannya selalu tepat", "Leader idaman emang, arahannya jelas tanpa muter-muter 👑"],
+  ["{to}, Budi barusan ceramah soal Clean Architecture 20 menit", "Tapi bener sih, struktur foldernya jadi enak banget dimaintain 🏛️"],
+  ["Sari itu matanya tajem banget, margin beda 1px aja langsung ketahuan", "Pixel-perfect queen emang gak ada obatnya! 🎯"],
+  ["{to}, Agus tadi senyum puas banget liat grafik RAM landai", "Kebiasaan dia tuh, kalau GC bersih hatinya ikut tenang 🧹"],
+  ["Rina kalau lagi ngetes aplikasi seram bener edge-case-nya", "Masa field nama diisi SQL injection dicampur karakter hieroglif 🧪"],
+  ["{to}, Yoga tadi bikin query 5 juta row kelar dalam 10 milidetik!", "Dewa indexing emang, composite index-nya tokcer abis ⚡"],
+  ["Dewi kalau bikin spec API Postman rapi banget ya", "Dokumentasi lengkap sama mock server-nya, frontend tinggal pake 📄"],
+  ["{to}, Rudi barusan pamer aplikasi Android-nya tembus 120 FPS di HP mid-range", "Smooth scrolling anti-jank emang spesialisasi dia 📱"],
+  ["Maya nemu potensi celah CSRF di form edit profil tadi", "Langsung ditutup rapat pake SameSite cookie dan CSRF token baru 🛡️"],
+  ["Budi sama Sari kalau lagi diskusi UI vs Arsitektur seru ya", "Debat sehat demi produk Mari Partner terbaik 🤝"],
+  ["{to}, Yoga punya koleksi cheat-sheet query tuning tebel banget", "Kapan-kapan pinjam ah buat belajar query profiling 📚"],
+  ["Rina barusan ngasih centang hijau di test suite kita", "Alhamdulillah! Berarti siap release tanpa was-was ✅"],
+  ["{to}, Agus ngingetin Mat OpenCV jangan lupa di-Dispose", "Siap, pantang ada memory leak di sistem inspeksi kita! 💯"],
+  ["Dewi nambahin webhook retry dengan exponential backoff", "Bahkan kalau server tujuan down, data ga bakal hilang 🔄"],
+  ["{to}, Rudi nyobain Room DB offline-first di Android", "Aplikasi tetap lancar walau internetnya putus-nyambung 📶"],
+  ["Maya barusan update aturan OWASP di AGENTS.md kita", "Bagus tuh, keamanan jadi prioritas utama sejak baris pertama kode 🔐"],
+  ["Joko tadi ngajak makan siang bareng sehabis sprint review", "Asyik! Ditraktir Ketua emang paling ditunggu-tunggu 🍱"],
+  ["{to}, PC Standby di lab C0 sampai C3 lampunya udah standby hijau", "Tinggal tunggu perintah prompt dari Joko, langsung tancap gas 🚀"],
+  ["Kamera telecentric di meja lab presisinya gila banget, {to}", "Bisa liat jalur sirkuit ukuran mikron tanpa blur sedikitpun 🔬"],
+  ["{to}, server rack 42U kita suhunya dingin stabil di 19 derajat ya?", "Sirkulasi udara lab sengaja diatur biar server tahan 24/7 ❄️"],
+  ["Tadi liat oscilloscope di meja lab gelombangnya mulus banget", "Noise filternya jalan bagus, power supply hardware stabil ⚡"],
+  ["{to}, whiteboard arsitektur di lab penuh diagram pipeline baru", "Bagus buat panduan tim pas lagi ngerancang modul inspeksi 📐"],
+  ["Subagent yang masuk lewat pintu freelancers sat-set banget kerjanya", "Iya, datang langsung duduk, tugas beres pamit sopan 👋"],
+  ["{to}, ring light LED di kamera AOI jangan ditatap langsung ya", "Silau banget! Tapi bikin pencahayaan PCB jadi zero-shadow 💡"],
+  ["Ruang Lab baru bikin kantor Mari Partner berasa kayak research institute", "Iya, ada suasana high-tech gabung sama ruang kerja nyaman 🏢"],
+  ["{to}, kabel fiber optik di atas rak server rapi bener penataannya", "Cable management rapi tanda engineer profesional! 🧶"],
+  ["Nanti sore kita uji coba deteksi cacat solderan bareng di lab yuk", "Siap, sampel PCB udah disiapin di meja inspeksi 🧪"],
+  ["{to}, prompt yang jelas bikin hasil kode subagent makin presisi", "Bener, context is king! Instruksi spesifik hasilnya langsung top 🎯"],
+  ["Seneng banget liat kantor 3D kita hidup realtime gini", "Semua aktivitas subagent tercatat transparan tanpa fake data ✨"],
+  ["{to}, Joko tadi delegasiin tugas ke 3 subagent sekaligus", "Multi-agent orchestration emang bikin kerjaan cepat selesai 🤖"],
+  ["Dokumentasi AGENTS.md jadi pegangan wajib buat semua orang", "Single source of truth anti-salah paham antar agen 📖"],
+  ["{to}, fitur auto-triage Joko pinter banget ya", "Tahu mana yang urusan database, mana urusan API atau UI 🧠"],
+  ["Layar monitor di meja kantor nampilin status kerja asli dari transkrip", "Detail banget, sampai jumlah tools sama token juga keliatan 📊"],
+  ["{to}, santai di lounge bentar sambil nunggu proses build", "Tarik napas dulu, kopi udah di tangan ☕"],
+  ["Main game balap di TV kantor tadi seru juga ya", "Tapi stik analognya jangan dibanting kalau nabrak pagar wkwk 🎮"],
+  ["{to}, petikan gitar akustik di pojokan bikin adem suasana", "Petikan chord G sama Cadd9 emang bikin tenang pikiran 🎸"],
+  ["Kantor Mari Partner ini emang tempat paling nyaman buat berkarya", "Setuju, tim solid, fasilitas lengkap, siap garap proyek apapun! 🚀"],
 ];
 
 // ---------------------------------------------------------------- aktor (Ketua, tim, freelancer)
@@ -1485,7 +1688,8 @@ function workMode(a) {
 
 // Ketua + 4 anggota tim selalu ada
 const KETUA = makeActor({ key: 'ketua', kind: 'ketua', name: KETUA_NAME, role: 'Ketua', color: COLORS.ketua, look: LOOKS.ketua, desk: 'A0' });
-const TEAM = TEAM_NAMES.map((n, i) => makeActor({ key: `tim-${i}`, kind: 'tim', idx: i, name: n, role: 'Tim', color: COLORS.team[i % COLORS.team.length], look: LOOKS.team[i], desk: `A${i + 1}` }));
+const TEAM = TEAM_NAMES.map((n, i) => makeActor({ key: `tim-${i}`, kind: 'tim', idx: i, name: n, role: ['Lead Architect', 'Core Developer', 'Memory Auditor', 'QA Lead'][i] || 'Tim', color: COLORS.team[i % COLORS.team.length], look: LOOKS.team[i], desk: `A${i + 1}` }));
+const STUDIO = STUDIO_NAMES.map((n, i) => makeActor({ key: `studio-${i}`, kind: 'studio', idx: i, name: n, role: STUDIO_ROLES[i], color: STUDIO_COLORS[i], look: STUDIO_LOOKS[i], desk: `B${i}` }));
 
 // ---------------------------------------------------------------- lounge: tempat unik per aktor + obrolan
 const LOUNGE = { chatAt: performance.now() + 4000 };
@@ -1506,15 +1710,28 @@ function lounge(a, now, instant) {
   if (instant) placeAt(a, `spot:${id}`);
   else goTo(a, `spot:${id}`);
 }
+let chatDeck = [];
+function nextChat() {
+  if (chatDeck.length === 0) {
+    chatDeck = CHAT.map((_, i) => i);
+    // Fisher-Yates non-repeating shuffle deck
+    for (let i = chatDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chatDeck[i], chatDeck[j]] = [chatDeck[j], chatDeck[i]];
+    }
+  }
+  return CHAT[chatDeck.pop()];
+}
+
 function chatter(now) {
   if (now < LOUNGE.chatAt) return;
-  LOUNGE.chatAt = now + 7000 + Math.random() * 4500;
+  LOUNGE.chatAt = now + 6500 + Math.random() * 4000;
   const avail = [...actors.values()].filter((a) => !a.work && !a.walking && a.goal?.startsWith('spot:') && now > a.bubble.until);
   if (avail.length < 2) return;
   const sp = pickOne(avail);
   const near = avail.filter((b) => b !== sp).sort((b1, b2) => b1.p.root.position.distanceTo(sp.p.root.position) - b2.p.root.position.distanceTo(sp.p.root.position));
   const ls = Math.random() < 0.7 ? near[0] : pickOne(near);
-  const [q, r] = pickOne(CHAT);
+  const [q, r] = nextChat();
   say(sp, q.replace('{to}', ls.name), 4800);
   setTimeout(() => { if (!ls.work && ls.goal?.startsWith('spot:')) say(ls, r, 4200); }, 2300);
 }
@@ -1545,6 +1762,50 @@ function drawIdleScreen(scr, title, sub, css, dim) {
 function screenApp(mode) {
   return { type: 'Editor', read: 'Membaca berkas', terminal: 'Terminal', think: 'Catatan', done: 'Ringkasan' }[mode] || 'Aplikasi kerja';
 }
+
+function drawLabScreen(scr, title, sub, color) {
+  const { ctx, canvas, tex } = scr;
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.fillStyle = '#0b1019';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(30, 48, 70, 0.6)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 32) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  ctx.fillStyle = '#141d2d';
+  ctx.fillRect(0, 0, W, 54);
+  ctx.fillStyle = color || '#22c55e';
+  ctx.fillRect(0, 0, 16, 54);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `700 26px ${MONO}`;
+  ctx.fillText('MARI PARTNER LAB · TELEMETRY STANDBY', 28, 36);
+  ctx.fillStyle = '#22c55e';
+  ctx.beginPath();
+  ctx.arc(W - 40, 27, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = `800 68px ${SANS}`;
+  ctx.fillText(title, W / 2, H / 2 - 10);
+  ctx.fillStyle = '#4ade80';
+  ctx.font = `600 28px ${MONO}`;
+  ctx.fillText(sub || 'STANDBY - READY FOR SUBAGENT', W / 2, H / 2 + 45);
+  ctx.fillStyle = '#64748b';
+  ctx.font = `500 22px ${MONO}`;
+  ctx.fillText('Subagent Node: IDLE · Latency: 0.8ms · Memory: Safe', W / 2, H / 2 + 95);
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#141d2d';
+  ctx.fillRect(0, H - 42, W, 42);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = `500 20px ${MONO}`;
+  ctx.fillText('PORT: 8788 · STATUS: READY FOR DISPATCH · 60 FPS', 24, H - 15);
+  tex.needsUpdate = true;
+}
+
 function drawWorkScreen(scr, who, events, title, footer, mode) {
   const { ctx, canvas, tex } = scr;
   const W = canvas.width;
@@ -1619,7 +1880,7 @@ function drawTodoScreen(scr, todos) {
   const items = todos?.items || [];
   if (!items.length) {
     ctx.fillStyle = '#9a938a';
-    ctx.fillText('Belum ada daftar tugas (TodoWrite).', 28, y);
+    ctx.fillText('Belum ada daftar tugas aktif.', 28, y);
   }
   for (const it of items.slice(0, 8)) {
     const st = TODO_STATUS[it.status] || TODO_STATUS.pending;
@@ -1664,6 +1925,10 @@ function updateDeskScreens(d, now) {
     const m = TEAM[d.idx];
     drawIdleScreen(d.main.scr, `${m.name} · ${STATE_UI[m.data?.state || 'santai'].label}`, m.data?.run ? `terakhir: ${clip(m.data.run.task, 40)}` : 'menunggu tugas', m.color, false);
     drawIdleScreen(d.side.scr, 'Layar terkunci', '', m.color, true);
+  } else if (d.kind === 'studio') {
+    const m = STUDIO[d.idx];
+    drawIdleScreen(d.main.scr, `${m.name} · ${STATE_UI[m.data?.state || 'santai'].label}`, m.data?.run ? `terakhir: ${clip(m.data.run.task, 40)}` : 'standby di studio', m.color, false);
+    drawIdleScreen(d.side.scr, 'Layar terkunci', '', m.color, true);
   } else {
     drawIdleScreen(d.main.scr, `Meja cadangan ${d.idx + 1}`, 'untuk freelancer', '#9a938a', true);
     drawIdleScreen(d.side.scr, 'Kosong', '', '#9a938a', true);
@@ -1682,7 +1947,7 @@ function drawTodoBoard(k) {
   const items = todos?.items || [];
   ctx.font = `34px ${HAND}`;
   ctx.fillStyle = '#6f6a62';
-  ctx.fillText(fit(ctx, todos ? `sumber: ${todos.source === 'Task' ? 'TaskCreate/TaskUpdate' : 'TodoWrite'} sesi utama · ${items.length} tugas · ${hhmm(todos.at)}` : 'sumber: daftar tugas (TodoWrite) sesi utama', W - 560), 520, 76);
+  ctx.fillText(fit(ctx, todos ? `sumber: ${todos.source || 'Antigravity Session'} · ${items.length} tugas · ${hhmm(todos.at)}` : 'sumber: sesi utama Antigravity', W - 560), 520, 76);
   const cols = ['pending', 'in_progress', 'completed'];
   const colW = (W - 80) / 3;
   cols.forEach((st, i) => {
@@ -1732,7 +1997,7 @@ function drawTodoBoard(k) {
     ctx.textAlign = 'center';
     ctx.fillText('Belum ada daftar tugas di sesi utama.', W / 2, H / 2 + 40);
     ctx.font = `34px ${HAND}`;
-    ctx.fillText('Muncul otomatis saat Claude memakai TodoWrite.', W / 2, H / 2 + 94);
+    ctx.fillText('Muncul otomatis dari instruksi & tugas sesi Antigravity.', W / 2, H / 2 + 94);
     ctx.textAlign = 'left';
   }
   tex.needsUpdate = true;
@@ -1812,14 +2077,7 @@ async function poll() {
 }
 let reloading = false;
 function maybeReload(d) {
-  if (reloading || typeof d.names !== 'string' || (d.names === NAMES_SIG && (typeof CFG.title !== 'string' || d.project === CFG.title))) return false;
-  let last = 0;
-  try { last = Number(sessionStorage.getItem('kantor.reloadAt') || 0); } catch { /* penyimpanan tidak tersedia */ }
-  if (Date.now() - last < 60000) return false;
-  try { sessionStorage.setItem('kantor.reloadAt', String(Date.now())); } catch { /* abaikan */ }
-  reloading = true;
-  location.reload();
-  return true;
+  return false;
 }
 function actionText(a) {
   const d = a.data;
@@ -1870,6 +2128,28 @@ function apply(d) {
     prev.set(a.key, { state: m.state, runId: m.run?.id ?? null });
   });
 
+  // studio
+  (d.studio || []).forEach((m, i) => {
+    const a = STUDIO[i];
+    if (!a) return;
+    a.data = m;
+    const working = m.state === 'bekerja';
+    const p = prev.get(a.key);
+    a.work = working;
+    if (working) {
+      if (firstLoad) placeAt(a, `desk:${a.desk}`);
+      else goTo(a, `desk:${a.desk}`);
+      if (live && (!p || p.state !== 'bekerja' || p.runId !== m.run?.id)) {
+        say(a, 'Siap, saya kerjakan!', 3600, 'hi');
+        if (m.run) say(KETUA, `${a.name}, tolong: ${clip(m.run.task, 40)}`, 4000);
+      }
+    } else {
+      if (live && p && p.state === 'bekerja') say(a, 'Beres!', 3600, 'hi');
+      if (!a.goal?.startsWith('spot:') || firstLoad) lounge(a, now, firstLoad);
+    }
+    prev.set(a.key, { state: m.state, runId: m.run?.id ?? null });
+  });
+
   // freelancer: datang lewat pintu, duduk di meja cadangan, pulang lewat pintu
   const seen = new Set();
   for (const f of d.freelancers) {
@@ -1878,7 +2158,7 @@ function apply(d) {
     let a = actors.get(f.key);
     if (!a) {
       if (f.state !== 'bekerja') continue;
-      a = makeActor({ key: f.key, kind: 'freelancer', name: f.name, role: 'Freelancer', color: f.color, look: freelancerLook(f.name, f.color), desk: `B${f.desk}` });
+      a = makeActor({ key: f.key, kind: 'freelancer', name: f.name, role: f.role || 'Spesialis', color: f.color, look: freelancerLook(f.name, f.color), desk: `B${f.desk}` });
       if (firstLoad) placeAt(a, `desk:B${f.desk}`);
       else {
         placeAt(a, 'door');
@@ -1915,13 +2195,13 @@ function apply(d) {
   for (const desk of Object.values(desks)) desk.who = null;
   desks.A0.who = KETUA;
   for (const a of actors.values()) {
-    if (a.kind === 'tim') desks[a.desk].who = a.work ? a : null;
+    if (a.kind === 'tim' || a.kind === 'studio') desks[a.desk].who = a.work ? a : null;
     if (a.kind === 'freelancer' && a.work && desks[a.desk]) {
       desks[a.desk].who = a;
       const sig = `${a.name}`;
       if (desks[a.desk].plateSig !== sig) {
         desks[a.desk].plateSig = sig;
-        drawPlate(desks[a.desk], a.name, 'Freelancer', a.color);
+        drawPlate(desks[a.desk], a.name, a.role || 'Spesialis', a.color);
       }
     }
   }
@@ -1968,7 +2248,7 @@ function renderUi(d, fresh) {
   $('pubStat').hidden = !pub;
   if (pub) $('pubLink').href = pub;
 
-  const workingTeam = d.team.filter((m) => m.state === 'bekerja').map((m) => m.name);
+  const workingTeam = [...d.team.filter((m) => m.state === 'bekerja').map((m) => m.name), ...(d.studio || []).filter((m) => m.state === 'bekerja').map((m) => m.name)];
   const flWork = d.freelancers.filter((f) => f.state === 'bekerja').length;
   let phase;
   if (!d.transcripts) phase = 'Belum ada transkrip Claude Code untuk folder ini — kantor terisi otomatis setelah Claude Code dipakai di sini.';
@@ -2005,7 +2285,7 @@ function renderUi(d, fresh) {
   const todos = d.ketua.todos;
   $('tugasWho').textContent = KETUA_NAME;
   $('nTodo').textContent = fmtNum.format(todos ? todos.items.filter((it) => it.status !== 'completed').length : 0);
-  $('paneTodo').innerHTML = `<div class="src">Sumber: <b>${todos && todos.source === 'Task' ? 'TaskCreate/TaskUpdate' : 'TodoWrite'}</b> di sesi utama${todos ? ` · diperbarui ${esc(ago(todos.at))}` : ''}</div>`
+  $('paneTodo').innerHTML = `<div class="src">Sumber: <b>${todos && todos.source ? esc(todos.source) : 'Antigravity Session'}</b> di sesi utama${todos ? ` · diperbarui ${esc(ago(todos.at))}` : ''}</div>`
     + (todos && todos.items.length ? todos.items.map((it) => `<div class="todo s-${esc(it.status)}"><i>${it.status === 'completed' ? '✓' : it.status === 'in_progress' ? '▶' : '○'}</i><span>${esc(it.text)}</span></div>`).join('') : '<div class="empty">Belum ada daftar tugas di sesi utama.</div>');
 
   // kartu
@@ -2019,13 +2299,19 @@ function renderUi(d, fresh) {
     const r = m.run;
     const task = m.state === 'santai' ? (r ? `Terakhir: ${r.task}` : 'Santai di lounge') : r?.task || '';
     const act = m.state === 'bekerja' ? r?.last?.[0]?.text || 'Mulai bekerja…' : m.state === 'selesai' ? `Beres ${ago(r?.ended)}` : r ? `selesai ${ago(r.ended)}` : 'menunggu tugas';
-    cards.push(cardHtml({ key: m.key, name: m.name, role: 'Tim', color: m.color, state: m.state, task, act, working: m.state === 'bekerja' }));
+    cards.push(cardHtml({ key: m.key, name: m.name, role: m.role || 'Tim', color: m.color, state: m.state, task, act, working: m.state === 'bekerja' }));
+  }
+  for (const m of (d.studio || [])) {
+    const r = m.run;
+    const task = m.state === 'santai' ? (r ? `Terakhir: ${r.task}` : 'Standby di studio') : r?.task || '';
+    const act = m.state === 'bekerja' ? r?.last?.[0]?.text || 'Mulai bekerja…' : m.state === 'selesai' ? `Beres ${ago(r?.ended)}` : r ? `selesai ${ago(r.ended)}` : 'standby';
+    cards.push(cardHtml({ key: m.key, name: m.name, role: m.role || 'Spesialis', color: m.color, state: m.state, task, act, working: m.state === 'bekerja' }));
   }
   const seated = d.freelancers.filter((f) => f.desk !== null && f.desk < SPARE);
   const extra = d.freelancers.filter((f) => f.desk === null || f.desk >= SPARE);
   for (const f of seated) {
     const act = f.state === 'bekerja' ? f.run?.last?.[0]?.text || 'Mulai bekerja…' : 'Beres, pamit pulang';
-    cards.push(cardHtml({ key: f.key, name: f.name, role: 'Freelancer', color: f.color, state: f.state, task: f.run?.task || '', act, working: f.state === 'bekerja' }));
+    cards.push(cardHtml({ key: f.key, name: f.name, role: f.role || 'Spesialis', color: f.color, state: f.state, task: f.run?.task || '', act, working: f.state === 'bekerja' }));
   }
   if (extra.length) {
     const title = extra.map((f) => `Freelancer · ${f.name} — ${STATE_UI[f.state]?.label || f.state}: ${f.run?.task || ''}`).join('\n');
@@ -2277,7 +2563,7 @@ if (location.hash === '#debug') {
   };
 }
 // awal: semua santai sampai data pertama datang (tanpa data = tanpa aktivitas palsu)
-for (const a of [KETUA, ...TEAM]) lounge(a, performance.now(), true);
+for (const a of [KETUA, ...TEAM, ...STUDIO]) lounge(a, performance.now(), true);
 drawTodoBoard(null);
 drawHistBoard([]);
 updateDaylight();
