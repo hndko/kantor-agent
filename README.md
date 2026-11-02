@@ -61,6 +61,35 @@ Jalankan salah satu cara berikut:
    - `start-kantor.bat` (menyalakan server dan membuka browser otomatis).
    - `stop-kantor.bat` (menghentikan server).
 
+## 🧰 Bundled Skills & Presets (17 Skills Terintegrasi)
+
+Seluruh skill dan preset tim yang dirancang untuk Kantor Mari Partner sudah dibundel langsung di folder `skills/`:
+
+### 1. Spesialis Studio (Baris B)
+- `skills/database-architect/` : **Yoga** — Senior Database, Indexing, SQLite WAL & Redis Cache Architect.
+- `skills/api-integrator/` : **Dewi** — Senior RESTful API, OpenAPI 3.0, Swagger & Webhook Exponential Retry.
+- `skills/mobile-architect/` : **Rudi** — Modern Android, Jetpack Compose, Kotlin Flow & 120 FPS Recomposition.
+- `skills/cybersec-officer/` : **Maya** — Senior Cybersecurity, Penetration Testing, OWASP Top 10 & RBAC Auditor.
+
+### 2. Multi-Agent Team Presets
+- `skills/studio-team/` : **Studio Team** — Formasi lengkap 8 subagent senior di bawah komando Joko.
+- `skills/db-team/` : **Database & Cache Team** — Yoga (DB), Agus (Perf), Rina (QA Data).
+- `skills/api-team/` : **API & Cloud Team** — Dewi (API), Maya (Security), Rina (Contract QA).
+- `skills/mobile-team/` : **Mobile Systems Team** — Rudi (Android), Dewi (API/Data), Rina (QA).
+- `skills/security-audit/` : **Security Hardening Team** — Maya (Cybersec), Agus (Memory), Budi (Architect).
+- `skills/aoi-team/` : **AOI Industrial Team** — Budi, Sari, Agus, Rina untuk proyek C# .NET 10 & OpenCV.
+- `skills/fullstack-team/` : **Fullstack Multi-Stack Team** — Budi, Sari, Agus, Rina untuk segala framework.
+
+### 3. Engineering Stack Specialists
+- `skills/vision-inspector-expert/` : C# .NET 10, OpenCvSharp4, zero-blocking UI & native Mat disposal.
+- `skills/android-expert/` : Modern Android Development (Compose, Room DB, Coroutines, StateFlow).
+- `skills/laravel-expert/` : Laravel 11/12 Clean Architecture (Action/Service pattern, Pest testing).
+- `skills/vue-expert/` : Vue 3 Composition API, Pinia, TypeScript, Vitest & Playwright.
+- `skills/codeigniter-expert/` : CodeIgniter 3 Modernization (PHP 8, CSRF) & CodeIgniter 4 Architecture.
+
+### 4. Controller Kantor 3D
+- `skills/kantor-agent/` : Server runtime Kantor Mari Partner 3D & protokol auto-dispatch Antigravity.
+
 ## Kebutuhan
 | Komponen | Keterangan |
 |---|---|
