@@ -63,7 +63,22 @@ Jalankan salah satu cara berikut:
 
 ## 🧰 Bundled Skills & Presets (17 Skills Terintegrasi)
 
-Seluruh skill dan preset tim yang dirancang untuk Kantor Mari Partner sudah dibundel langsung di folder `skills/`:
+Seluruh skill dan preset tim yang dirancang untuk Kantor Mari Partner sudah dibundel langsung di folder `skills/`.
+
+### ⚡ Pasang Seluruh Skill ke Komputer Baru (1-Klik Auto-Install)
+Ketika Anda clone repository ini ke komputer baru, pasang seluruh 17 skill & preset ke Google Antigravity dan Claude Code secara global cukup dengan satu perintah:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  .\kantor.ps1 install-skills
+  # atau:
+  .\install-skills.ps1
+  ```
+- **macOS / Linux / WSL**:
+  ```bash
+  chmod +x install-skills.sh && ./install-skills.sh
+  ```
+Setelah dijalankan, seluruh preset seperti `/studio-team`, `/fullstack-team`, `/db-team`, `/api-team`, `/kantor-agent`, dll. akan langsung aktif dan bisa dipanggil dari folder project mana pun di komputer tersebut!
 
 ### 1. Spesialis Studio (Baris B)
 - `skills/database-architect/` : **Yoga** — Senior Database, Indexing, SQLite WAL & Redis Cache Architect.

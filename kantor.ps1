@@ -3,7 +3,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('start', 'stop', 'status', 'restart', 'url')]
+    [ValidateSet('start', 'stop', 'status', 'restart', 'url', 'install-skills')]
     [string]$Action = 'start',
     [int]$Port = 8788
 )
@@ -50,6 +50,10 @@ function Get-ActiveAntigravityAccount {
 }
 
 switch ($Action) {
+    'install-skills' {
+        & (Join-Path $ScriptDir "install-skills.ps1")
+        return
+    }
     'status' {
         $proc = Get-RunningProcess
         $acc = Get-ActiveAntigravityAccount
