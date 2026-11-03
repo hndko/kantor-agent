@@ -161,6 +161,161 @@ sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.02;
 scene.add(sun);
 
+// ---------------------------------------------------------------- collaboration beams & audio
+const beamGroup = new THREE.Group();
+scene.add(beamGroup);
+let activeBeams = [];
+
+let audioCtx = null;
+let isAudioMuted = localStorage.getItem('kantor.audio') !== '1'; // default muted (off)
+let lastTypingSoundTime = 0;
+let prevCompletedRunsCount = 0;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function updateAudioUi() {
+  const icon = $('audioIcon');
+  const txt = $('audioTxt');
+  if (icon) icon.textContent = isAudioMuted ? '🔇' : '🔊';
+  if (txt) txt.textContent = isAudioMuted ? 'Audio Off' : 'Audio On';
+  const btn = $('btnAudio');
+  if (btn) btn.classList.toggle('active', !isAudioMuted);
+}
+
+function toggleAudio() {
+  initAudio();
+  isAudioMuted = !isAudioMuted;
+  try { localStorage.setItem('kantor.audio', isAudioMuted ? '0' : '1'); } catch { /* ignore */ }
+  updateAudioUi();
+  if (!isAudioMuted) playChime();
+}
+
+function playKeyClick() {
+  if (isAudioMuted || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const bufferSize = Math.floor(audioCtx.sampleRate * 0.015);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2000 + Math.random() * 1000, t);
+    filter.Q.setValueAtTime(5, t);
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.04 + Math.random() * 0.02, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    noise.start(t);
+  } catch { /* ignore */ }
+}
+
+function playChime() {
+  if (isAudioMuted || !audioCtx) return;
+  try {
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    notes.forEach((freq, idx) => {
+      const t = audioCtx.currentTime + idx * 0.08;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.05, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.36);
+    });
+  } catch { /* ignore */ }
+}
+
+function updateCollaborationBeams(d) {
+  if (!d || !desks['A0']) return;
+  const p0 = desks['A0'].g.position.clone().add(new THREE.Vector3(0, 0.85, 0));
+  const workingDesks = [];
+
+  for (let i = 0; i < (d.team || []).length; i++) {
+    const m = d.team[i];
+    if (m.state === 'bekerja') {
+      const deskId = `A${i + 1}`;
+      if (desks[deskId]) workingDesks.push({ deskId, color: m.color || COLORS.team[i] || '#2fbf71' });
+    }
+  }
+
+  for (let j = 0; j < (d.studio || []).length; j++) {
+    const s = d.studio[j];
+    if (s.state === 'bekerja') {
+      const deskId = `B${j}`;
+      if (desks[deskId]) workingDesks.push({ deskId, color: s.color || STUDIO_COLORS[j] || '#0f8fa3' });
+    }
+  }
+
+  for (const f of (d.freelancers || [])) {
+    if (f.state === 'bekerja' && f.desk !== null) {
+      const deskId = f.desk < 4 ? `C${f.desk}` : null;
+      if (deskId && desks[deskId]) workingDesks.push({ deskId, color: f.color || '#23874f' });
+    }
+  }
+
+  const currentDeskIds = new Set(workingDesks.map((w) => w.deskId));
+  for (let i = activeBeams.length - 1; i >= 0; i--) {
+    const b = activeBeams[i];
+    if (!currentDeskIds.has(b.deskId)) {
+      beamGroup.remove(b.line);
+      b.line.geometry.dispose();
+      b.mat.dispose();
+      activeBeams.splice(i, 1);
+    }
+  }
+
+  const existingDeskIds = new Set(activeBeams.map((b) => b.deskId));
+  for (const w of workingDesks) {
+    if (!existingDeskIds.has(w.deskId)) {
+      const targetDesk = desks[w.deskId];
+      const p2 = targetDesk.g.position.clone().add(new THREE.Vector3(0, 0.85, 0));
+      const mid = new THREE.Vector3((p0.x + p2.x) / 2, Math.max(p0.y, p2.y) + 2.4, (p0.z + p2.z) / 2);
+      const curve = new THREE.QuadraticBezierCurve3(p0, mid, p2);
+      const points = curve.getPoints(40);
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineDashedMaterial({
+        color: w.color,
+        dashSize: 0.45,
+        gapSize: 0.25,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const line = new THREE.Line(geo, mat);
+      line.computeLineDistances();
+      beamGroup.add(line);
+      activeBeams.push({ line, mat, deskId: w.deskId });
+    }
+  }
+}
+
+function tickBeams(dt, t) {
+  for (const b of activeBeams) {
+    b.mat.dashOffset -= dt * 2.2;
+    b.mat.opacity = 0.55 + 0.35 * Math.sin(t * 3.8);
+  }
+}
+
 // ---------------------------------------------------------------- material / mesh / tekstur
 const matCache = new Map();
 function mat(color, rough = 0.8, metal = 0) {
@@ -2250,6 +2405,71 @@ function apply(d) {
 }
 
 // ---------------------------------------------------------------- UI HTML
+let lastRenderedData = null;
+let activeFeedFilter = 'all';
+
+function exportReport(d) {
+  if (!d) return;
+  const nowStr = new Date().toLocaleString('id-ID');
+  const isoDate = new Date().toISOString().slice(0, 10);
+  const todos = d.ketua?.todos?.items || [];
+  const inProgressTodos = todos.filter((t) => t.status === 'in_progress');
+  const pendingTodos = todos.filter((t) => t.status === 'pending');
+  const completedTodos = todos.filter((t) => t.status === 'completed');
+  const runs = d.runs || [];
+
+  let md = `# 📄 Laporan Operasional Sesi — Kantor Mari Partner\n\n`;
+  md += `> Diekspor secara otomatis pada: **${nowStr}**\n\n`;
+  md += `| Metrik | Nilai |\n| :--- | :--- |\n`;
+  md += `| **Status Sistem** | Live Antigravity Session |\n`;
+  md += `| **Subagent Hari Ini** | ${d.stats?.recent_starts?.length || 0} subagent |\n`;
+  md += `| **Aktif Saat Ini** | ${d.stats?.active || 0} subagent |\n`;
+  md += `| **Total Tindakan Alat (Tools)** | ${d.ketua?.tools || 0} aksi |\n`;
+  md += `| **Estimasi Token** | ${d.ketua?.tokens ? fmtCompact.format(d.ketua.tokens) : '0'} token |\n\n`;
+
+  md += `---\n\n## 🎯 Status Tugas Joko (Lead Orchestrator)\n\n`;
+  if (inProgressTodos.length) {
+    md += `### ⏳ Sedang Berjalan (In Progress)\n`;
+    inProgressTodos.forEach((t) => md += `- [ ] **${t.text}** *(mulai: ${t.at ? hhmmss(t.at) : '-'}\*)\n`);
+    md += `\n`;
+  }
+  if (pendingTodos.length) {
+    md += `### 📋 Rencana (Pending)\n`;
+    pendingTodos.forEach((t) => md += `- [ ] ${t.text}\n`);
+    md += `\n`;
+  }
+  if (completedTodos.length) {
+    md += `### ✅ Selesai (Completed)\n`;
+    completedTodos.slice(0, 20).forEach((t) => md += `- [x] ${t.text} *(selesai: ${t.at ? hhmmss(t.at) : '-'}\*)\n`);
+    md += `\n`;
+  }
+
+  md += `---\n\n## 👥 Tim & Spesialis Kantor Mari Partner\n\n`;
+  md += `| Nama | Peran | Divisi | Status |\n| :--- | :--- | :--- | :--- |\n`;
+  md += `| **Joko** | Lead Orchestrator | Sesi Utama | ${d.ketua?.state || 'santai'} |\n`;
+  (d.team || []).forEach((m) => md += `| **${m.name}** | ${m.role || 'Tim Inti'} | Main Office (A) | ${m.state || 'santai'} |\n`);
+  (d.studio || []).forEach((m) => md += `| **${m.name}** | ${m.role || 'Spesialis Studio'} | Main Office (B) | ${m.state || 'santai'} |\n`);
+  (d.freelancers || []).forEach((f) => md += `| **${f.name}** | ${f.role || 'Lab Specialist'} | Sayap Lab (C) | ${f.state || 'santai'} |\n`);
+
+  if (runs.length) {
+    md += `\n---\n\n## 🏃 Riwayat Pekerjaan Subagent (Terbaru)\n\n`;
+    runs.slice(0, 15).forEach((r, idx) => {
+      md += `${idx + 1}. **${r.label}** (${r.agent_type}) — \`${r.status}\`\n`;
+      md += `   - **Tugas:** ${r.task}\n`;
+      md += `   - **Waktu:** ${hhmm(r.started)} (${dur(r.started, r.ended)})\n`;
+    });
+  }
+
+  md += `\n---\n*Laporan ini dihasilkan secara otomatis oleh sistem Kantor Mari Partner 3D.*\n`;
+
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Laporan-Kantor-Mari-Partner-${isoDate}.md`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 function stateChip(state, extra = '') {
   const ui = STATE_UI[state] || STATE_UI.santai;
   return `<span class="chip st" style="color:${ui.css}"><i></i>${esc(ui.label)}${extra}</span>`;
@@ -2280,11 +2500,30 @@ function renderUi(d, fresh) {
     banner.classList.add('show');
   } else banner.classList.remove('show');
 
-  // feed
-  const feedHtml = d.feed.slice(0, 100).map((e) => {
+  lastRenderedData = d;
+  updateCollaborationBeams(d);
+
+  // Token & hemat stats
+  const totalTokens = (d.ketua?.tokens || 0) + (d.runs || []).reduce((acc, r) => acc + (r.tokens || 0), 0);
+  const tokEl = $('sTokens');
+  if (tokEl) tokEl.textContent = `${fmtCompact.format(totalTokens)} (~68% hemat)`;
+
+  // Deteksi audio chime saat ada run yang selesai
+  const completedRuns = (d.runs || []).filter((r) => r.status === 'selesai').length;
+  if (prevCompletedRunsCount > 0 && completedRuns > prevCompletedRunsCount) {
+    playChime();
+  }
+  prevCompletedRunsCount = completedRuns;
+
+  // feed dengan filter per agen
+  const filteredFeed = activeFeedFilter === 'all'
+    ? d.feed
+    : d.feed.filter((e) => (e.name && e.name.toLowerCase().includes(activeFeedFilter.toLowerCase())) || e.who === activeFeedFilter);
+
+  const feedHtml = filteredFeed.slice(0, 100).map((e) => {
     const k = `${e.t}|${e.who}|${e.text}`;
     return `<li class="k-${esc(e.kind)}${fresh.has(k) ? ' fresh' : ''}"><span class="av" style="background:${esc(e.color)}">${esc(initial(e.name.replace(/^Freelancer · /, '')))}</span><div><div class="meta"><span class="who" style="color:${esc(e.color)}">${esc(e.name)}</span><time>${esc(hhmmss(e.t))}</time></div><div class="txt">${esc(e.text)}</div></div></li>`;
-  }).join('') || '<li><div class="empty" style="grid-column:1/-1">Belum ada aktivitas.</div></li>';
+  }).join('') || `<li><div class="empty" style="grid-column:1/-1">Belum ada aktivitas untuk ${esc(activeFeedFilter)}.</div></li>`;
   for (const id of ['feed', 'feed2']) if ($(id).innerHTML !== feedHtml) $(id).innerHTML = feedHtml;
   $('feedCount').textContent = fmtNum.format(d.feed.length);
 
@@ -2384,6 +2623,64 @@ function setLapang(on) {
   try { localStorage.setItem('kantor.lapang', on ? '1' : '0'); } catch { /* abaikan */ }
   onResize();
 }
+function setCamPreset(name) {
+  document.querySelectorAll('.cambtn').forEach((b) => b.classList.toggle('active', b.dataset.cam === name));
+  if (name === 'home') {
+    tweenCamera(HOME.pos, HOME.target);
+  } else if (name === 'ketua') {
+    tweenCamera(new THREE.Vector3(-4.8, 3.2, -1.2), new THREE.Vector3(-7.0, 0.8, -4.3));
+  } else if (name === 'lab') {
+    tweenCamera(new THREE.Vector3(16.2, 7.8, 11.2), new THREE.Vector3(15.5, 1.2, -2.0));
+  } else if (name === 'active') {
+    const working = [...actors.values()].find((a) => a.work && a.key !== 'ketua') || actors.get('ketua');
+    if (working) focusOn(working.key);
+    else tweenCamera(HOME.pos, HOME.target);
+  }
+}
+
+function tweenCamera(pos, target) {
+  if (REDUCED) {
+    camera.position.copy(pos);
+    controls.target.copy(target);
+    return;
+  }
+  tween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone() };
+}
+
+document.querySelectorAll('.cambtn').forEach((btn) => {
+  btn.onclick = () => setCamPreset(btn.dataset.cam);
+});
+
+$('btnTheme').onclick = cycleTheme;
+$('btnAudio').onclick = toggleAudio;
+$('btnExport').onclick = () => exportReport(lastRenderedData);
+
+const feedFilters = $('feedFilters');
+if (feedFilters) {
+  feedFilters.addEventListener('click', (e) => {
+    const pill = e.target.closest('.f-pill');
+    if (!pill) return;
+    feedFilters.querySelectorAll('.f-pill').forEach((p) => p.classList.toggle('active', p === pill));
+    activeFeedFilter = pill.dataset.filter || 'all';
+    if (lastRenderedData) {
+      const fresh = new Set();
+      const filteredFeed = activeFeedFilter === 'all'
+        ? lastRenderedData.feed
+        : lastRenderedData.feed.filter((item) => (item.name && item.name.toLowerCase().includes(activeFeedFilter.toLowerCase())) || item.who === activeFeedFilter);
+      const feedHtml = filteredFeed.slice(0, 100).map((item) => {
+        return `<li class="k-${esc(item.kind)}"><span class="av" style="background:${esc(item.color)}">${esc(initial(item.name.replace(/^Freelancer · /, '')))}</span><div><div class="meta"><span class="who" style="color:${esc(item.color)}">${esc(item.name)}</span><time>${esc(hhmmss(item.t))}</time></div><div class="txt">${esc(item.text)}</div></div></li>`;
+      }).join('') || `<li><div class="empty" style="grid-column:1/-1">Belum ada aktivitas untuk ${esc(activeFeedFilter)}.</div></li>`;
+      for (const id of ['feed', 'feed2']) if ($(id).innerHTML !== feedHtml) $(id).innerHTML = feedHtml;
+    }
+  });
+}
+
+// Inisialisasi audio saat pengguna pertama kali berinteraksi
+window.addEventListener('pointerdown', () => initAudio(), { once: true });
+window.addEventListener('keydown', () => initAudio(), { once: true });
+updateAudioUi();
+updateThemeUi();
+
 $('togglePanel').onclick = () => setLapang(!document.body.classList.contains('lapang'));
 addEventListener('keydown', (e) => {
   if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input,textarea,[contenteditable]')) setLapang(!document.body.classList.contains('lapang'));
@@ -2443,17 +2740,47 @@ try { if (localStorage.getItem('kantor.lapang') === '1') document.body.classList
 onResize();
 if (document.body.classList.contains('lapang')) $('togglePanel').textContent = 'Tampilkan panel';
 
-let nightState = null;
-function updateDaylight() {
+let themeMode = localStorage.getItem('kantor.theme') || 'auto'; // 'auto' | 'night' | 'day'
+
+function getIsNight() {
+  if (themeMode === 'night') return true;
+  if (themeMode === 'day') return false;
   const h = new Date().getHours();
-  const night = h >= 18 || h < 6;
-  if (night === nightState) return;
-  nightState = night;
-  paintSky(night);
-  sun.intensity = night ? 0.25 : 2.3;
-  hemi.intensity = night ? 0.45 : 1.05;
-  scene.background.set(night ? '#d9d3ca' : '#e9e3da');
-  for (const d of Object.values(desks)) d.lamp.intensity = night ? 3 : 0;
+  return h >= 18 || h < 6;
+}
+
+function updateThemeUi() {
+  const icon = $('themeIcon');
+  const txt = $('themeTxt');
+  if (icon) icon.textContent = themeMode === 'auto' ? '🌓' : themeMode === 'night' ? '🌙' : '☀️';
+  if (txt) txt.textContent = themeMode === 'auto' ? 'Auto' : themeMode === 'night' ? 'Malam' : 'Siang';
+}
+
+function applyTheme(mode) {
+  if (mode) themeMode = mode;
+  try { localStorage.setItem('kantor.theme', themeMode); } catch { /* ignore */ }
+  const isNight = getIsNight();
+  document.body.classList.toggle('night', isNight);
+  updateThemeUi();
+  paintSky(isNight);
+  sun.intensity = isNight ? 0.35 : 2.3;
+  sun.color.set(isNight ? '#738cb3' : '#fff1dc');
+  hemi.intensity = isNight ? 0.45 : 1.05;
+  hemi.color.set(isNight ? '#3b4766' : '#fdf7ef');
+  hemi.groundColor.set(isNight ? '#0d111a' : '#c9b9a3');
+  scene.background.set(isNight ? '#0b0e17' : '#e9e3da');
+  renderer.setClearColor(isNight ? '#0b0e17' : '#e9e3da', 1);
+  for (const d of Object.values(desks)) if (d.lamp) d.lamp.intensity = isNight ? 3.5 : 0;
+}
+
+function cycleTheme() {
+  if (themeMode === 'auto') applyTheme('night');
+  else if (themeMode === 'night') applyTheme('day');
+  else applyTheme('auto');
+}
+
+function updateDaylight() {
+  applyTheme();
 }
 
 // ---------------------------------------------------------------- loop animasi
@@ -2540,6 +2867,16 @@ function frame() {
   }
   door.open = REDUCED ? (near ? 1 : 0) : THREE.MathUtils.lerp(door.open, near ? 1 : 0, Math.min(1, dt * 5));
   door.hinge.rotation.y = door.open * 1.35; // berayun ke dalam ruangan
+
+  // Update kolaborasi beams & simulasi ketikan audio
+  tickBeams(dt, t);
+  if (!isAudioMuted && now - lastTypingSoundTime > (2200 + Math.random() * 2500)) {
+    const isAnyoneTyping = [...actors.values()].some((a) => a.work);
+    if (isAnyoneTyping) {
+      playKeyClick();
+      lastTypingSoundTime = now;
+    }
+  }
   // TV jadi game saat ada yang main PS
   const player = [...actors.values()].find((x) => !x.walking && x.goal === 'spot:ps');
   LOUNGE_PADS[1].visible = !player;

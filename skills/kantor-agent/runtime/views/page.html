@@ -115,6 +115,67 @@ button { font: inherit; color: inherit; }
 .todo.s-in_progress span { color: #144d30; }
 .todo.s-completed span { color: var(--faint); text-decoration: line-through; }
 
+
+.top-controls { display: flex; gap: 8px; align-items: stretch; }
+.cam-group { display: flex; padding: 2px; gap: 2px; align-items: center; }
+.cambtn { border: 0; background: transparent; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all .15s; white-space: nowrap; }
+.cambtn:hover { color: var(--text); background: rgba(0,0,0,0.05); }
+.cambtn.active { background: #2f5bd3; color: #fff; }
+.topbtn { padding: 0 12px; border: 1px solid var(--line); cursor: pointer; font-weight: 600; font-size: 11.5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius); }
+.topbtn:hover { background: #fff; }
+
+.feed-filters { display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; background: rgba(0,0,0,0.015); }
+.feed-filters::-webkit-scrollbar { display: none; }
+.f-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; white-space: nowrap; transition: all .15s; }
+.f-pill:hover { border-color: var(--line-strong); color: var(--text); }
+.f-pill.active { background: #2f5bd3; color: #fff; border-color: #2f5bd3; }
+.f-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Tema Malam (Night Mode) */
+body.night {
+  --bg: #0b0e14;
+  --panel: rgba(18, 23, 34, 0.92);
+  --text: #e2e8f0;
+  --muted: #8e9cb2;
+  --faint: #5a6882;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  background: #080a0f;
+  color: #e2e8f0;
+}
+body.night .card-ui { background: var(--panel); border-color: var(--line); color: var(--text); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 10px 32px rgba(0,0,0,0.55); }
+body.night .stat small { color: #8e9cb2; }
+body.night .stat b { color: #f8fafc; }
+body.night .cambtn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+body.night .cambtn.active { background: #3b82f6; color: #fff; }
+body.night .topbtn:hover { background: #1f2739; color: #fff; }
+body.night .toggle:hover { background: #1f2739; color: #fff; }
+body.night .f-pill { background: #151a26; border-color: var(--line); color: #8e9cb2; }
+body.night .f-pill:hover { color: #fff; border-color: var(--line-strong); }
+body.night .f-pill.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+body.night .feed li.fresh { background: rgba(37, 99, 235, 0.12); }
+body.night .feed .txt { color: #cbd5e1; }
+body.night .chip { background: #151a26; border-color: var(--line-strong); color: #cbd5e1; }
+body.night .minbtn { background: #151a26; border-color: var(--line); color: #8e9cb2; }
+body.night .minbtn:hover { color: #fff; border-color: var(--line-strong); }
+body.night .tabs button { color: #8e9cb2; }
+body.night .tabs button[aria-selected="true"] { color: #fff; border-bottom-color: #3b82f6; }
+body.night .tabs button .n { background: #222b3d; color: #94a3b8; }
+body.night .run { border-color: var(--line); }
+body.night .run .t { color: #f1f5f9; }
+body.night .run:hover { background: rgba(255,255,255,0.04); }
+body.night .todo { color: #cbd5e1; }
+body.night .todo.s-in_progress { background: rgba(47, 191, 113, 0.18); border-left-color: #2fbf71; }
+body.night .todo.s-in_progress span { color: #4ade80; }
+body.night .todo.s-in_progress i { color: #2fbf71; }
+body.night .todo.s-completed span { color: #64748b; }
+body.night .card { background: rgba(18, 23, 34, 0.94); border-color: var(--line); color: #e2e8f0; }
+body.night .card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+body.night .card .nm { color: #f8fafc; }
+body.night .card .role { color: #8e9cb2; }
+body.night .card .act { color: #64748b; }
+body.night .banner { background: #2c2108; border-color: #634814; color: #fef08a; }
+
 /* kartu karakter */
 .cards { position: fixed; left: 16px; right: 16px; bottom: 14px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; z-index: 5; }
 .card { padding: 10px 12px 11px; cursor: pointer; transition: transform .25s, box-shadow .25s; min-width: 0; text-align: left; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 2px 10px; }
@@ -203,15 +264,45 @@ body.lapang .cards { opacity: .92; }
     <div class="stat"><small>Status</small><span class="live"><i class="dot" id="liveDot"></i><span id="liveTxt">Menghubungkan…</span></span></div>
     <div class="stat"><small>Subagent hari ini</small><b id="sToday">–</b></div>
     <div class="stat"><small>Aktif sekarang</small><b id="sActive">–</b></div>
+    <div class="stat" id="tokenStat"><small>Token / Hemat</small><b id="sTokens">–</b></div>
     <div class="stat" id="pubStat" hidden><small>URL publik</small><a id="pubLink" href="#" target="_blank" rel="noopener noreferrer">buka</a></div>
   </div>
-  <button class="toggle card-ui" id="togglePanel" type="button" title="Tombol pintas: H">Lihat kantor penuh</button>
+  <div class="top-controls">
+    <div class="cam-group card-ui" aria-label="Sudut Kamera">
+      <button type="button" class="cambtn active" data-cam="home" title="Tampilan Keseluruhan">🏢 Kantor</button>
+      <button type="button" class="cambtn" data-cam="ketua" title="Fokus ke Meja Joko">👔 Joko</button>
+      <button type="button" class="cambtn" data-cam="lab" title="Fokus ke Sayap Lab & Testing">🔬 Lab</button>
+      <button type="button" class="cambtn" data-cam="active" title="Fokus ke Agen yang Sedang Bekerja">🎯 Aktif</button>
+    </div>
+    <button class="topbtn card-ui" id="btnTheme" type="button" title="Ganti Mode Siang / Malam / Otomatis">
+      <span id="themeIcon">🌓</span> <span id="themeTxt">Auto</span>
+    </button>
+    <button class="topbtn card-ui" id="btnAudio" type="button" title="Toggle Suara Ketikan Keyboard & Notifikasi Selesai">
+      <span id="audioIcon">🔇</span> <span id="audioTxt">Audio Off</span>
+    </button>
+    <button class="topbtn card-ui" id="btnExport" type="button" title="Unduh Laporan Operasional Sesi (Markdown)">
+      📄 Laporan
+    </button>
+    <button class="toggle card-ui" id="togglePanel" type="button" title="Tombol pintas: H">Lihat kantor penuh</button>
+  </div>
 </div>
 
 <div class="banner" id="banner" role="status"></div>
 
 <aside class="side left card-ui" aria-label="Aktivitas langsung">
   <header><h2>Aktivitas langsung</h2><span class="hright"><span class="chip" id="feedCount">0</span><button type="button" class="minbtn" data-min="left" aria-expanded="true" title="Perkecil / buka panel"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sr">Perkecil panel</span></button></span></header>
+  <div class="feed-filters" id="feedFilters" aria-label="Filter aktivitas per agen">
+    <button type="button" class="f-pill active" data-filter="all">Semua</button>
+    <button type="button" class="f-pill" data-filter="Joko"><span class="f-dot" style="background:#5e548e"></span>Joko</button>
+    <button type="button" class="f-pill" data-filter="Budi"><span class="f-dot" style="background:#2f5bd3"></span>Budi</button>
+    <button type="button" class="f-pill" data-filter="Sari"><span class="f-dot" style="background:#228b6d"></span>Sari</button>
+    <button type="button" class="f-pill" data-filter="Agus"><span class="f-dot" style="background:#c46822"></span>Agus</button>
+    <button type="button" class="f-pill" data-filter="Rina"><span class="f-dot" style="background:#b33973"></span>Rina</button>
+    <button type="button" class="f-pill" data-filter="Yoga"><span class="f-dot" style="background:#0f8fa3"></span>Yoga</button>
+    <button type="button" class="f-pill" data-filter="Dewi"><span class="f-dot" style="background:#9a7418"></span>Dewi</button>
+    <button type="button" class="f-pill" data-filter="Rudi"><span class="f-dot" style="background:#4f7d3a"></span>Rudi</button>
+    <button type="button" class="f-pill" data-filter="Maya"><span class="f-dot" style="background:#8a4fa8"></span>Maya</button>
+  </div>
   <div class="scroll"><ul class="feed" id="feed"></ul></div>
 </aside>
 
@@ -231,6 +322,6 @@ body.lapang .cards { opacity: .92; }
 <div class="cards" id="cards" aria-label="Karakter"></div>
 
 {{CONFIG_SCRIPT}}
-<script type="module" src="/kerja/assets/kantor.js?v=20261102_v5"></script>
+<script type="module" src="/kerja/assets/kantor.js?v=20261103_v1"></script>
 </body>
 </html>
